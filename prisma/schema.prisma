@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Schema para Sistema de Monitoreo de Temperatura del Suelo
+// Certificación bonos de carbono por biochar - Puro.earth
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+// ============================================================================
+// MODELOS PRINCIPALES
+// ============================================================================
+
+// Usuario autenticado con Supabase
+model User {
+    id        String   @id @db.Uuid // UUID de Supabase Auth
+    email     String   @unique @db.VarChar(255)
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+    updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+    // Relaciones
+    clients   Client[]
+    locations Location[]
+
+    @@map("users")
+}
+
+model Client {
+    id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+    userId       String   @map("user_id") @db.Uuid
+    companyName  String   @map("company_name") @db.VarChar(255)
+    contactEmail String   @unique @map("contact_email") @db.VarChar(255)
+    contactPhone String?  @map("contact_phone") @db.VarChar(50)
+    createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+    updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+    // Relaciones
+    user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    locations Location[]
+    reports   Report[]
+
+    @@index([userId])
+    @@map("clients")
+}
+
+model Location {
+    id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+    userId          String    @map("user_id") @db.Uuid
+    clientId        String?   @map("client_id") @db.Uuid
+    name            String    @db.VarChar(255)
+    description     String?   @db.Text
+    siteName        String?   @map("site_name") @db.VarChar(255)
+    latitude        Decimal   @db.Decimal(10, 8)
+    longitude       Decimal   @db.Decimal(11, 8)
+    elevation       Decimal?  @db.Decimal(8, 2)
+    soilType        String?   @map("soil_type") @db.VarChar(100)
+    landUse         String?   @map("land_use") @db.VarChar(100)
+    clientName      String    @map("client_name") @db.VarChar(255)
+    clientEmail     String?   @map("client_email") @db.VarChar(255)
+    areaHectares    Decimal?  @map("area_hectares") @db.Decimal(10, 2)
+    applicationDate DateTime? @map("application_date") @db.Date
+    isActive        Boolean   @default(true) @map("is_active")
+    createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+    updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+    // Relaciones
+    user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+    client           Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+    soilTemperatures SoilTemperature[]
+
+    // Índices
+    @@index([userId])
+    @@index([clientId])
+    @@index([latitude, longitude])
+    @@index([isActive])
+    @@map("locations")
+}
+
+model SoilTemperature {
+    id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+    locationId      String   @map("location_id") @db.Uuid
+    measurementDate DateTime @map("measurement_date") @db.Date
+    tempLevel1      Decimal? @map("temp_level_1") @db.Decimal(5, 2) // 0-7 cm
+    tempLevel2      Decimal? @map("temp_level_2") @db.Decimal(5, 2) // 7-28 cm
+    tempLevel3      Decimal? @map("temp_level_3") @db.Decimal(5, 2) // 28-100 cm
+    tempLevel4      Decimal? @map("temp_level_4") @db.Decimal(5, 2) // 100-289 cm
+    dataSource      String?  @default("ERA5-Land") @map("data_source") @db.VarChar(50)
+    createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+    // Relaciones
+    location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+    // Índices y constraints
+    @@unique([locationId, measurementDate, dataSource])
+    @@index([locationId])
+    @@index([measurementDate])
+    @@index([locationId, measurementDate])
+    @@map("soil_temperatures")
+}
+
+model Report {
+    id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+    clientId    String       @map("client_id") @db.Uuid
+    periodStart DateTime     @map("period_start") @db.Date
+    periodEnd   DateTime     @map("period_end") @db.Date
+    fileUrl     String?      @map("file_url") @db.Text
+    status      ReportStatus @default(PENDING)
+    createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+    // Relaciones
+    client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+    // Índices
+    @@index([clientId])
+    @@index([status])
+    @@map("reports")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum ReportStatus {
+    PENDING    @map("pending")
+    PROCESSING @map("processing")
+    COMPLETED  @map("completed")
+    FAILED     @map("failed")
+}

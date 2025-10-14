@@ -1,0 +1,70 @@
+/* Estilos para el mapa de calor de temperaturas */
+.leaflet-tooltip-custom {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.leaflet-tooltip-custom::before {
+  border-top-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.heatmap-tooltip {
+  color: #374151;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.heatmap-tooltip strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.heatmap-tooltip small {
+  color: #6b7280;
+  font-size: 10px;
+}
+
+/* Dark mode para tooltips */
+@media (prefers-color-scheme: dark) {
+  .leaflet-tooltip-custom {
+    background: rgba(31, 41, 55, 0.95) !important;
+    border: 1px solid #4b5563 !important;
+    color: #f9fafb !important;
+  }
+  
+  .leaflet-tooltip-custom::before {
+    border-top-color: rgba(31, 41, 55, 0.95) !important;
+  }
+
+  .heatmap-tooltip {
+    color: #f9fafb;
+  }
+
+  .heatmap-tooltip strong {
+    color: #ffffff;
+  }
+
+  .heatmap-tooltip small {
+    color: #d1d5db;
+  }
+}
+
+/* Estilos para el contenedor del mapa */
+.leaflet-container {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.leaflet-control-zoom a {
+  color: #374151 !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.8) !important;
+  color: #6b7280 !important;
+  font-size: 10px !important;
+}

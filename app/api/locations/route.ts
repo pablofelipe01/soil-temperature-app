@@ -17,7 +17,13 @@ const locationSchema = z.object({
   landUse: z.string().optional(),
   clientName: z.string().min(1, 'El nombre del cliente es requerido'),
   clientEmail: z.string().email('Email inválido').optional(),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
+  // Campos de Biochar
+  biocharStartDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  biocharQuantity: z.number().positive('La cantidad debe ser positiva').optional(),
+  biocharUnit: z.enum(['kg/m²', 'ton/ha', 'kg/ha', 'g/m²']).optional(),
+  biocharFrequency: z.enum(['única vez', 'mensual', 'bimestral', 'trimestral', 'semestral', 'anual']).optional(),
+  biocharNotes: z.string().max(1000, 'Las notas son muy largas').optional()
 })
 
 // GET /api/locations - Obtener todas las ubicaciones del usuario
@@ -173,12 +179,15 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Preparar datos para Prisma 
+    const prismaData = {
+      ...locationData,
+      userId: userId
+    }
+
     // Crear la nueva ubicación
     const newLocation = await prisma.location.create({
-      data: {
-        ...locationData,
-        userId: userId
-      },
+      data: prismaData,
       include: {
         _count: {
           select: {

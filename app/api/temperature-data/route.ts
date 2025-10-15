@@ -83,13 +83,20 @@ export async function GET(request: NextRequest) {
 
         // Si no faltan muchos días (menos del 10%), usar datos existentes
         if (missingDates.length < dateRange.length * 0.1) {
+          // Obtener fecha de biochar para clasificar datos
+          const biocharStartDate = location.biocharStartDate
+
           // Transformar datos al formato esperado por el frontend
-          const transformedData = existingData.map(record => ({
-            id: record.id,
-            date: record.measurementDate.toISOString().split('T')[0],
-            temperatureCelsius: parseFloat((record.tempLevel1 || 0).toString()), // Usar el primer nivel como default
-            dataSource: record.dataSource || 'ERA5-Land'
-          }))
+          const transformedData = existingData.map(record => {
+            const recordDate = record.measurementDate.toISOString().split('T')[0]
+            return {
+              id: record.id,
+              date: recordDate,
+              temperatureCelsius: parseFloat((record.tempLevel1 || 0).toString()), // Usar el primer nivel como default
+              dataSource: record.dataSource || 'ERA5-Land',
+              isPostBiochar: biocharStartDate ? new Date(recordDate) >= biocharStartDate : false
+            }
+          })
 
           return NextResponse.json({
             success: true,
@@ -100,6 +107,13 @@ export async function GET(request: NextRequest) {
               name: location.name,
               latitude: parseFloat(location.latitude.toString()),
               longitude: parseFloat(location.longitude.toString())
+            },
+            biochar: {
+              startDate: location.biocharStartDate?.toISOString().split('T')[0],
+              quantity: location.biocharQuantity ? parseFloat(location.biocharQuantity.toString()) : undefined,
+              unit: location.biocharUnit,
+              frequency: location.biocharFrequency,
+              notes: location.biocharNotes
             },
             dateRange: { startDate, endDate },
             stats: calculateStats(transformedData)
@@ -172,13 +186,20 @@ export async function GET(request: NextRequest) {
       }
     }
     
+    // Obtener fecha de biochar para clasificar datos
+    const biocharStartDate = location.biocharStartDate
+
     // Transformar datos al formato esperado por el frontend
-    const transformedData = savedRecords.map(record => ({
-      id: record.id,
-      date: record.measurementDate.toISOString().split('T')[0],
-      temperatureCelsius: parseFloat((record.tempLevel1 || 0).toString()),
-      dataSource: record.dataSource || 'ERA5-Land'
-    }))
+    const transformedData = savedRecords.map(record => {
+      const recordDate = record.measurementDate.toISOString().split('T')[0]
+      return {
+        id: record.id,
+        date: recordDate,
+        temperatureCelsius: parseFloat((record.tempLevel1 || 0).toString()),
+        dataSource: record.dataSource || 'ERA5-Land',
+        isPostBiochar: biocharStartDate ? new Date(recordDate) >= biocharStartDate : false
+      }
+    })
 
     return NextResponse.json({
       success: true,
@@ -189,6 +210,13 @@ export async function GET(request: NextRequest) {
         name: location.name,
         latitude: parseFloat(location.latitude.toString()),
         longitude: parseFloat(location.longitude.toString())
+      },
+      biochar: {
+        startDate: location.biocharStartDate?.toISOString().split('T')[0],
+        quantity: location.biocharQuantity ? parseFloat(location.biocharQuantity.toString()) : undefined,
+        unit: location.biocharUnit,
+        frequency: location.biocharFrequency,
+        notes: location.biocharNotes
       },
       dateRange: { startDate, endDate },
       stats: calculateStats(transformedData),

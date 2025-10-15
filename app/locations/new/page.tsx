@@ -16,6 +16,12 @@ interface FormData {
   landUse: string
   clientName: string
   clientEmail: string
+  // Campos de Biochar
+  biocharStartDate: string
+  biocharQuantity: string
+  biocharUnit: string
+  biocharFrequency: string
+  biocharNotes: string
 }
 
 const initialFormData: FormData = {
@@ -27,7 +33,13 @@ const initialFormData: FormData = {
   soilType: '',
   landUse: '',
   clientName: '',
-  clientEmail: ''
+  clientEmail: '',
+  // Campos de Biochar
+  biocharStartDate: '',
+  biocharQuantity: '',
+  biocharUnit: '',
+  biocharFrequency: '',
+  biocharNotes: ''
 }
 
 export default function NewLocationPage() {
@@ -65,6 +77,12 @@ export default function NewLocationPage() {
         landUse: formData.landUse.trim() || undefined,
         clientName: formData.clientName.trim(),
         clientEmail: formData.clientEmail.trim() || undefined,
+        // Campos de Biochar
+        biocharStartDate: formData.biocharStartDate || undefined,
+        biocharQuantity: formData.biocharQuantity ? parseFloat(formData.biocharQuantity) : undefined,
+        biocharUnit: formData.biocharUnit || undefined,
+        biocharFrequency: formData.biocharFrequency || undefined,
+        biocharNotes: formData.biocharNotes.trim() || undefined,
         isActive: true
       }
 
@@ -362,6 +380,105 @@ export default function NewLocationPage() {
                       onChange={handleInputChange}
                       className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm placeholder-gray-400 dark:placeholder-gray-400"
                       placeholder="cliente@ejemplo.com"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección Biochar */}
+              <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    🌱 Información de Biochar
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Datos sobre la aplicación de biochar para análisis de impacto en temperatura
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="biocharStartDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Fecha de inicio de aplicación
+                    </label>
+                    <input
+                      type="date"
+                      name="biocharStartDate"
+                      id="biocharStartDate"
+                      value={formData.biocharStartDate}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="biocharQuantity" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Cantidad aplicada
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="biocharQuantity"
+                      id="biocharQuantity"
+                      value={formData.biocharQuantity}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="biocharUnit" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Unidad
+                    </label>
+                    <select
+                      name="biocharUnit"
+                      id="biocharUnit"
+                      value={formData.biocharUnit}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="">Seleccionar unidad</option>
+                      <option value="kg/m²">kg/m²</option>
+                      <option value="ton/ha">ton/ha</option>
+                      <option value="kg/ha">kg/ha</option>
+                      <option value="g/m²">g/m²</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="biocharFrequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Frecuencia de aplicación
+                    </label>
+                    <select
+                      name="biocharFrequency"
+                      id="biocharFrequency"
+                      value={formData.biocharFrequency}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="">Seleccionar frecuencia</option>
+                      <option value="única vez">Única vez</option>
+                      <option value="mensual">Mensual</option>
+                      <option value="bimestral">Bimestral</option>
+                      <option value="trimestral">Trimestral</option>
+                      <option value="semestral">Semestral</option>
+                      <option value="anual">Anual</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label htmlFor="biocharNotes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Notas adicionales
+                    </label>
+                    <textarea
+                      name="biocharNotes"
+                      id="biocharNotes"
+                      rows={3}
+                      value={formData.biocharNotes}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Información adicional sobre la aplicación de biochar..."
                     />
                   </div>
                 </div>

@@ -19,7 +19,13 @@ const updateLocationSchema = z.object({
   landUse: z.string().optional(),
   clientName: z.string().min(1, 'El nombre del cliente es requerido').optional(),
   clientEmail: z.string().email('Email inválido').optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  // Campos de Biochar
+  biocharStartDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
+  biocharQuantity: z.number().positive('La cantidad debe ser positiva').optional(),
+  biocharUnit: z.enum(['kg/m²', 'ton/ha', 'kg/ha', 'g/m²']).optional(),
+  biocharFrequency: z.enum(['única vez', 'mensual', 'bimestral', 'trimestral', 'semestral', 'anual']).optional(),
+  biocharNotes: z.string().max(1000, 'Las notas son muy largas').optional()
 })
 
 interface RouteParams {
@@ -174,15 +180,18 @@ export async function PUT(
       }
     }
 
+    // Preparar datos para Prisma
+    const prismaUpdateData = {
+      ...updateData,
+      updatedAt: new Date()
+    }
+
     // Actualizar la ubicación
     const updatedLocation = await prisma.location.update({
       where: {
         id: locationId
       },
-      data: {
-        ...updateData,
-        updatedAt: new Date()
-      },
+      data: prismaUpdateData,
       include: {
         _count: {
           select: {

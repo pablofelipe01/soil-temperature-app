@@ -15,6 +15,15 @@ interface TemperatureData {
   date: string
   temperatureCelsius: number
   dataSource: string
+  isPostBiochar?: boolean
+}
+
+interface BiocharInfo {
+  startDate?: string
+  quantity?: number
+  unit?: string
+  frequency?: string
+  notes?: string
 }
 
 interface SimpleMapProps {
@@ -26,6 +35,7 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
   const mapInstanceRef = useRef<L.Map | null>(null)
   const [location, setLocation] = useState<Location | null>(null)
   const [temperatureData, setTemperatureData] = useState<TemperatureData[]>([])
+  const [biocharInfo, setBiocharInfo] = useState<BiocharInfo | null>(null)
   const [loadingTemperature, setLoadingTemperature] = useState(false)
 
   // Cargar ubicación específica o la primera disponible
@@ -95,7 +105,9 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
           const result = await response.json()
           if (result.success && result.data) {
             setTemperatureData(result.data)
+            setBiocharInfo(result.biochar || null)
             console.log('🌡️ Datos de temperatura cargados:', result.data.length, 'registros')
+            console.log('🌱 Información de biochar:', result.biochar)
           } else {
             console.log('⚠️ No hay datos de temperatura disponibles:', result.error)
             // Intentar con fechas más antiguas si fallan las actuales
@@ -112,7 +124,9 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
                 const retryResult = await retryResponse.json()
                 if (retryResult.success && retryResult.data) {
                   setTemperatureData(retryResult.data)
+                  setBiocharInfo(retryResult.biochar || null)
                   console.log('🌡️ Datos de temperatura cargados (fechas antiguas):', retryResult.data.length, 'registros')
+                  console.log('🌱 Información de biochar:', retryResult.biochar)
                 }
               }
             }
@@ -129,13 +143,24 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
   }, [location])
 
   // Función para determinar color basado en temperatura
-  const getTemperatureColor = (temperature: number) => {
-    if (temperature < 10) return '#3B82F6'  // Azul - muy frío
-    if (temperature < 15) return '#06B6D4'  // Cian - frío
-    if (temperature < 20) return '#10B981'  // Verde - templado
-    if (temperature < 25) return '#F59E0B'  // Amarillo - cálido
-    if (temperature < 30) return '#F97316'  // Naranja - caliente
-    return '#EF4444'                         // Rojo - muy caliente
+  const getTemperatureColor = (temperature: number, isPostBiochar?: boolean) => {
+    if (isPostBiochar) {
+      // Colores más cálidos/naranjas para datos post-biochar
+      if (temperature < 10) return '#7C3AED'  // Púrpura - muy frío post-biochar
+      if (temperature < 15) return '#A855F7'  // Púrpura claro - frío post-biochar
+      if (temperature < 20) return '#EC4899'  // Rosa - templado post-biochar
+      if (temperature < 25) return '#F97316'  // Naranja - cálido post-biochar
+      if (temperature < 30) return '#DC2626'  // Rojo - caliente post-biochar
+      return '#991B1B'                        // Rojo oscuro - muy caliente post-biochar
+    } else {
+      // Colores originales para datos pre-biochar
+      if (temperature < 10) return '#3B82F6'  // Azul - muy frío
+      if (temperature < 15) return '#06B6D4'  // Cian - frío
+      if (temperature < 20) return '#10B981'  // Verde - templado
+      if (temperature < 25) return '#F59E0B'  // Amarillo - cálido
+      if (temperature < 30) return '#F97316'  // Naranja - caliente
+      return '#EF4444'                        // Rojo - muy caliente
+    }
   }
 
   useEffect(() => {
@@ -203,7 +228,7 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
           
           // Usar la temperatura más reciente
           const latestTemp = temperatureData[temperatureData.length - 1]
-          const color = getTemperatureColor(latestTemp.temperatureCelsius)
+          const color = getTemperatureColor(latestTemp.temperatureCelsius, latestTemp.isPostBiochar)
           
           // Crear círculo coloreado por temperatura
           L.circle([lat, lng], {
@@ -214,19 +239,35 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
             weight: 3
           }).addTo(map)
           
+          // Preparar información de biochar para el popup
+          let biocharStatusText = ''
+          if (biocharInfo && biocharInfo.startDate) {
+            const biocharDate = new Date(biocharInfo.startDate)
+            const recordDate = new Date(latestTemp.date)
+            const isPeriodPostBiochar = recordDate >= biocharDate
+            
+            biocharStatusText = isPeriodPostBiochar 
+              ? `<br/>🌱 <span style="color: #DC2626; font-weight: bold;">Post-Biochar</span> (desde ${biocharDate.toLocaleDateString('es-CO')})`
+              : `<br/>📊 <span style="color: #3B82F6; font-weight: bold;">Pre-Biochar</span> (biochar aplicado ${biocharDate.toLocaleDateString('es-CO')})`
+            
+            if (biocharInfo.quantity && biocharInfo.unit) {
+              biocharStatusText += `<br/>💧 ${biocharInfo.quantity} ${biocharInfo.unit}`
+            }
+          }
+
           // Marcador principal con información detallada
           L.marker([lat, lng])
             .addTo(map)
             .bindPopup(`
-              <div style="font-family: system-ui; padding: 8px; min-width: 200px;">
+              <div style="font-family: system-ui; padding: 8px; min-width: 220px;">
                 <strong style="color: #374151; font-size: 14px;">${location.name}</strong><br/>
                 <div style="margin: 8px 0;">
                   <span style="color: ${color}; font-weight: bold; font-size: 16px;">
                     🌡️ ${latestTemp.temperatureCelsius.toFixed(1)}°C
-                  </span><br/>
+                  </span>${biocharStatusText}<br/>
                   <small style="color: #6b7280;">
                     📅 ${new Date(latestTemp.date).toLocaleDateString('es-CO')}<br/>
-                    📊 ${temperatureData.length} registros (Julio 2025)<br/>
+                    📊 ${temperatureData.length} registros<br/>
                     🛰️ Datos satelitales ERA5-Land<br/>
                     📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}
                   </small>
@@ -268,7 +309,7 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
         mapInstanceRef.current = null
       }
     }
-  }, [location, temperatureData])
+  }, [location, temperatureData, biocharInfo])
 
   if (!location) {
     return (
@@ -295,6 +336,27 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
           <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2">
             🌡️ Temperatura del Suelo
           </h4>
+          
+          {/* Mostrar información de biochar si está disponible */}
+          {biocharInfo && biocharInfo.startDate && (
+            <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
+              <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
+                <strong>🌱 Análisis con Biochar:</strong>
+              </div>
+              <div className="flex items-center space-x-1 text-xs mb-1">
+                <div className="w-3 h-3 rounded-full" style={{backgroundColor: '#3B82F6'}}></div>
+                <span className="text-gray-600 dark:text-gray-400">Pre-Biochar (azules)</span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <div className="w-3 h-3 rounded-full" style={{backgroundColor: '#7C3AED'}}></div>
+                <span className="text-gray-600 dark:text-gray-400">Post-Biochar (púrpuras/rosas)</span>
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                📅 Aplicado: {new Date(biocharInfo.startDate).toLocaleDateString('es-CO')}
+              </div>
+            </div>
+          )}
+          
           <div className="space-y-1">
             <div className="flex items-center space-x-1 text-xs">
               <div className="w-3 h-3 rounded-full bg-blue-500"></div>

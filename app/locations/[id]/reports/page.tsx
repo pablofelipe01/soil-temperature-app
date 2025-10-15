@@ -58,10 +58,10 @@ export default function LocationReportsPage() {
 
               <div className="mt-8">
                 <Link
-                  href={`/temperature-data?locationId=${locationId}`}
+                  href={`/locations/${locationId}`}
                   className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700"
                 >
-                  🌡️ Ver Datos de Temperatura
+                  🌡️ Ver Datos de Temperatura en Mapa
                 </Link>
               </div>
             </div>

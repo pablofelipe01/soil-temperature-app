@@ -331,11 +331,6 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
             </div>
           )}
         </div>
-        
-        {/* Badge informativo */}
-        <div className="absolute top-4 left-4 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium" style={{ zIndex: 1000 }}>
-          {temperatureData.length > 0 ? '🌡️ Con datos de temperatura' : '📍 Ubicación simple'}
-        </div>
       </div>
     </div>
   )

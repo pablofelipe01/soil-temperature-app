@@ -21,18 +21,12 @@ const nextConfig: NextConfig = {
     return config
   },
   
-  // Configuración de Turbopack para mejor hot reload
-  turbo: {
-    rules: {
-      '*.svg': {
-        loaders: ['@svgr/webpack'],
-        as: '*.js',
-      },
-    },
-  },
-  
   // Optimización de chunks para evitar errores de módulos perdidos
-  output: 'standalone'
+  experimental: {
+    // Configuraciones experimentales para mejor rendimiento
+    optimizeCss: true,
+    optimizePackageImports: ['leaflet']
+  }
 };
 
 export default nextConfig;

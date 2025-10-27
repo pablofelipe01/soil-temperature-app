@@ -21,10 +21,21 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="relative min-h-screen overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-fixed"
+          style={{
+            backgroundImage: 'url(/textura-biochar.jpg)',
+          }}
+        ></div>
+        
+        {/* Dark overlay */}
+        <div className="absolute top-0 left-0 w-full h-full bg-black/60"></div>
+        
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="relative z-10 flex items-center justify-center h-96 pt-24">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400"></div>
         </div>
       </div>
     )
@@ -32,14 +43,25 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="relative min-h-screen overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-fixed"
+          style={{
+            backgroundImage: 'url(/textura-biochar.jpg)',
+          }}
+        ></div>
+        
+        {/* Dark overlay */}
+        <div className="absolute top-0 left-0 w-full h-full bg-black/60"></div>
+        
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <div className="relative z-10 flex items-center justify-center h-96 pt-24">
+          <div className="text-center backdrop-blur-lg bg-white/10 border border-white/20 rounded-2xl p-8">
+            <h2 className="text-xl font-medium text-white mb-2">
               Acceso no autorizado
             </h2>
-            <p className="text-gray-600">Redirigiendo al login...</p>
+            <p className="text-gray-300">Redirigiendo al login...</p>
           </div>
         </div>
       </div>
@@ -47,9 +69,20 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-fixed"
+        style={{
+          backgroundImage: 'url(/textura-biochar.jpg)',
+        }}
+      ></div>
+      
+      {/* Dark overlay */}
+      <div className="absolute top-0 left-0 w-full h-full bg-black/40"></div>
+      
       <Navbar />
-      <main className="flex-1">
+      <main className="relative z-10 flex-1 pt-24">
         {children}
       </main>
     </div>

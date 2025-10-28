@@ -265,14 +265,15 @@ async function fetchTemperatureFromGEE(
   }
 }
 
-// Tipos para los datos de temperatura
-interface TemperatureRecord {
-  date: string
-  temperature: number
-  metadata?: Record<string, unknown>
-}
+// Tipos para los datos de temperatura - comentado porque no se usa actualmente
+// interface TemperatureRecord {
+//   date: string
+//   temperature: number
+//   metadata?: Record<string, unknown>
+// }
 
-// Función para guardar datos de temperatura en la base de datos
+// Función para guardar datos de temperatura en la base de datos - comentada porque no se usa actualmente
+/*
 interface GEETemperatureRecord {
   date: string
   temperature_level_1?: number
@@ -316,6 +317,7 @@ async function saveTemperatureData(locationId: string, temperatureData: GEETempe
 
   return savedRecords
 }
+*/
 
 // Función auxiliar para generar rango de fechas
 function getDaysInRange(startDate: string, endDate: string): string[] {

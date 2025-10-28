@@ -23,8 +23,7 @@ const nextConfig: NextConfig = {
   
   // Optimización de chunks para evitar errores de módulos perdidos
   experimental: {
-    // Configuraciones experimentales para mejor rendimiento
-    optimizeCss: true,
+    // Removido optimizeCss que causaba problemas con critters
     optimizePackageImports: ['leaflet']
   }
 };

@@ -361,214 +361,242 @@ export default function LocationDetailPage() {
 
   return (
     <ProtectedLayout>
-      <div className="py-10">
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-          {/* Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header con navegación y acciones */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <Link
                 href="/locations"
-                className="text-blue-600 hover:text-blue-500 flex items-center"
+                className="inline-flex items-center text-sm font-medium text-white hover:text-blue-200 transition-colors drop-shadow-md"
               >
-                ← Volver a ubicaciones
+                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Volver a ubicaciones
               </Link>
               
               <div className="flex items-center space-x-3">
                 <Link
                   href={`/locations/${locationId}/edit`}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  className="inline-flex items-center px-4 py-2 border border-white/30 rounded-lg text-sm font-medium text-white bg-white/10 hover:bg-white/20 backdrop-blur-md transition-colors shadow-lg"
                 >
-                  ✏️ Editar
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Editar
                 </Link>
                 <button
                   onClick={handleDeleteLocation}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                  className="inline-flex items-center px-4 py-2 border border-red-400/50 rounded-lg text-sm font-medium text-white bg-red-600/30 hover:bg-red-600/50 backdrop-blur-md transition-colors shadow-lg"
                 >
-                  🗑️ Eliminar
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Eliminar
                 </button>
               </div>
             </div>
-            
-            <h1 className="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:text-3xl">
-              {location.name}
-            </h1>
-            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
-              {location.description || 'Sin descripción'}
-            </p>
+
+            {/* Título y descripción */}
+            <div className="backdrop-blur-xl bg-white/15 rounded-xl shadow-2xl border border-white/30 p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
+                    {location.name}
+                  </h1>
+                  {location.description && (
+                    <p className="text-white/90 max-w-3xl drop-shadow-md">
+                      {location.description}
+                    </p>
+                  )}
+                </div>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium backdrop-blur-md shadow-lg ${
+                  location.isActive 
+                    ? 'bg-green-500/40 text-white border border-green-300/40'
+                    : 'bg-gray-500/40 text-white border border-gray-300/40'
+                }`}>
+                  {location.isActive ? '✓ Activo' : 'Inactivo'}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            {/* Información general */}
-            <div className="lg:col-span-1">
-              <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Información General
-                  </h3>
+          {/* Grid principal */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Sidebar con información */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Información de la ubicación */}
+              <div className="backdrop-blur-xl bg-white/15 rounded-xl shadow-2xl border border-white/30 overflow-hidden">
+                <div className="px-5 py-4 border-b border-white/20">
+                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide drop-shadow-md">
+                    Detalles
+                  </h2>
                 </div>
-                <div className="p-6 space-y-4">
+                <div className="p-5 space-y-4">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Cliente</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{location.clientName}</dd>
+                    <p className="text-xs font-medium text-white/70 uppercase tracking-wide mb-1">Cliente</p>
+                    <p className="text-sm font-medium text-white drop-shadow-md">{location.clientName}</p>
                     {location.clientEmail && (
-                      <dd className="text-sm text-gray-500 dark:text-gray-400">{location.clientEmail}</dd>
+                      <p className="text-xs text-white/80 mt-0.5">{location.clientEmail}</p>
                     )}
                   </div>
                   
                   <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Coordenadas</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                      📍 {parseFloat(location.latitude.toString()).toFixed(6)}, {parseFloat(location.longitude.toString()).toFixed(6)}
-                    </dd>
+                    <p className="text-xs font-medium text-white/70 uppercase tracking-wide mb-1">Coordenadas</p>
+                    <p className="text-sm text-white font-mono drop-shadow-md">
+                      {parseFloat(location.latitude.toString()).toFixed(6)}
+                    </p>
+                    <p className="text-sm text-white font-mono drop-shadow-md">
+                      {parseFloat(location.longitude.toString()).toFixed(6)}
+                    </p>
                   </div>
 
                   {location.elevation && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Elevación</dt>
-                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">⛰️ {location.elevation}m</dd>
+                      <p className="text-xs font-medium text-white/70 uppercase tracking-wide mb-1">Elevación</p>
+                      <p className="text-sm text-white drop-shadow-md">{location.elevation}m</p>
                     </div>
                   )}
 
                   {location.soilType && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Tipo de suelo</dt>
-                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{location.soilType}</dd>
+                      <p className="text-xs font-medium text-white/70 uppercase tracking-wide mb-1">Tipo de suelo</p>
+                      <p className="text-sm text-white drop-shadow-md">{location.soilType}</p>
                     </div>
                   )}
 
                   {location.landUse && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Uso del suelo</dt>
-                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{location.landUse}</dd>
+                      <p className="text-xs font-medium text-white/70 uppercase tracking-wide mb-1">Uso del suelo</p>
+                      <p className="text-sm text-white drop-shadow-md">{location.landUse}</p>
                     </div>
                   )}
 
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Estado</dt>
-                    <dd className="mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        location.isActive 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      }`}>
-                        {location.isActive ? '✅ Activo' : '❌ Inactivo'}
-                      </span>
-                    </dd>
-                  </div>
-
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Creado</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  <div className="pt-4 border-t border-white/20">
+                    <p className="text-xs font-medium text-white/70 uppercase tracking-wide mb-1">Creado</p>
+                    <p className="text-sm text-white drop-shadow-md">
                       {new Date(location.createdAt).toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
                       })}
-                    </dd>
+                    </p>
                   </div>
 
                   {location._count && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Datos de temperatura</dt>
-                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                        {location._count.soilTemperatures} registros
-                      </dd>
+                      <p className="text-xs font-medium text-white/70 uppercase tracking-wide mb-1">Registros</p>
+                      <p className="text-2xl font-bold text-blue-300 drop-shadow-lg">
+                        {location._count.soilTemperatures}
+                      </p>
+                      <p className="text-xs text-white/70">datos de temperatura</p>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Acciones rápidas */}
-              <div className="mt-6 bg-white dark:bg-gray-800 shadow rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Acciones Rápidas
-                  </h3>
+              <div className="backdrop-blur-xl bg-white/15 rounded-xl shadow-2xl border border-white/30 overflow-hidden">
+                <div className="px-5 py-4 border-b border-white/20">
+                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide drop-shadow-md">
+                    Acciones
+                  </h2>
                 </div>
-                <div className="p-6 space-y-3">
+                <div className="p-5 space-y-2">
                   <button
                     onClick={() => {
-                      // Scroll to temperature section
                       const tempSection = document.querySelector('[data-temperature-section]')
                       tempSection?.scrollIntoView({ behavior: 'smooth' })
                     }}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-blue-600/60 hover:bg-blue-600/80 text-white rounded-lg text-sm font-medium transition-colors shadow-lg backdrop-blur-sm"
                   >
-                    🌡️ Ver Datos de Temperatura
+                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Ver Temperatura
                   </button>
                   
                   <button
                     onClick={() => {
-                      // Quick query for last 7 days
                       const endD = new Date().toISOString().split('T')[0]
                       const startD = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
                       setStartDate(startD)
                       setEndDate(endD)
                       fetchTemperatureData(startD, endD, false)
                     }}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-colors shadow-lg"
                   >
-                    📅 Últimos 7 días
+                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Últimos 7 días
                   </button>
                   
                   <Link
                     href={`/locations/${locationId}/reports`}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-colors shadow-lg"
                   >
-                    📊 Ver Reportes
+                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Ver Reportes
                   </Link>
                 </div>
               </div>
             </div>
 
-            {/* Datos de temperatura */}
-            <div className="lg:col-span-2" data-temperature-section>
-              <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+            {/* Contenido principal */}
+            <div className="lg:col-span-3 space-y-6" data-temperature-section>
+              {/* Panel de consulta de temperatura */}
+              <div className="backdrop-blur-xl bg-white/15 rounded-xl shadow-2xl border border-white/30 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                       Consulta de Temperatura del Suelo
-                    </h3>
+                    </h2>
                     {loadingTemperature && (
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Cargando...</span>
+                      </div>
                     )}
                   </div>
                 </div>
                 
                 {/* Controles de consulta */}
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                <div className="px-6 py-5 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
                         Fecha de inicio
                       </label>
                       <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2"
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
                         Fecha de fin
                       </label>
                       <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2"
                       />
                     </div>
                     
                     <div className="flex items-end">
-                      <label className="flex items-center">
+                      <label className="flex items-center cursor-pointer">
                         <input
                           type="checkbox"
                           checked={forceRefresh}
                           onChange={(e) => setForceRefresh(e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded cursor-pointer"
                         />
                         <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                           Forzar actualización
@@ -580,18 +608,23 @@ export default function LocationDetailPage() {
                       <button
                         onClick={handleCustomQuery}
                         disabled={loadingTemperature}
-                        className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        {loadingTemperature ? '🔄' : '🌡️'} Consultar
+                        <svg className={`mr-2 h-4 w-4 ${loadingTemperature ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={loadingTemperature ? "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" : "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"} />
+                        </svg>
+                        Consultar
                       </button>
                     </div>
                   </div>
                   
                   {temperatureError && (
-                    <div className="mt-4 p-4 rounded-md bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400">
+                    <div className="mt-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800">
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
-                          <span className="text-yellow-400 text-lg">⚠️</span>
+                          <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
                         </div>
                         <div className="ml-3 flex-1">
                           <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
@@ -606,13 +639,13 @@ export default function LocationDetailPage() {
                   )}
                 </div>
 
-                {/* Controles de vista */}
-                <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                {/* Controles de vista y reportes */}
+                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Vista de datos
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                      Visualización
                     </h4>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3">
                       {/* Botón de generar reporte */}
                       <div className="relative report-dropdown-container">
                         <button
@@ -805,56 +838,69 @@ export default function LocationDetailPage() {
                         </div>
                       </div>
 
-                      {/* Tabla de datos recientes */}
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                          Todos los Datos ({temperatureData.length} registros)
-                        </h4>
-                        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                          <div className="max-h-96 overflow-y-auto">
-                            <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
-                                <tr>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Fecha
-                                  </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Temperatura
-                                  </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Fuente
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {temperatureData.slice().reverse().map((record) => (
-                                  <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                                      {new Date(record.date).toLocaleDateString('es-ES')}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {parseFloat(record.temperatureCelsius.toString()).toFixed(2)}°C
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                      <span className="inline-flex items-center">
-                                        🛰️ {record.dataSource}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          {temperatureData.length > 10 && (
-                            <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 text-center">
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                💡 Desplázate hacia arriba/abajo para ver todos los registros
-                              </p>
-                            </div>
-                          )}
+                      {/* Tabla de datos */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                            Todos los Datos
+                          </h4>
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            {temperatureData.length} registros
+                          </span>
                         </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0 z-10">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                  Fecha
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                  Temperatura
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                  Fuente
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                              {temperatureData.slice().reverse().map((record, index) => (
+                                <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {new Date(record.date).toLocaleDateString('es-ES', { 
+                                      year: 'numeric', 
+                                      month: 'short', 
+                                      day: 'numeric' 
+                                    })}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                      {parseFloat(record.temperatureCelsius.toString()).toFixed(2)}°C
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                    <div className="flex items-center">
+                                      <svg className="mr-2 h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                                      </svg>
+                                      {record.dataSource}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {temperatureData.length > 10 && (
+                          <div className="bg-gray-50 dark:bg-gray-900/50 px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+                            <p className="text-xs text-center text-gray-500 dark:text-gray-400 flex items-center justify-center">
+                              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Desplázate para ver todos los registros
+                            </p>
+                          </div>
+                        )}
                       </div>
                         </>
                       ) : (
@@ -951,7 +997,6 @@ export default function LocationDetailPage() {
             </div>
           </div>
         </div>
-      </div>
     </ProtectedLayout>
   )
 }

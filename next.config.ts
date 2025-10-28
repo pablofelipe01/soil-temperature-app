@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
       }
     }
     
-    // Optimización para Leaflet
+    // Optimización para Leaflet y módulos de reportes
     config.resolve.alias = {
       ...config.resolve.alias,
       'leaflet': 'leaflet/dist/leaflet.js'

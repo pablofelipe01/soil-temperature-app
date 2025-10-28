@@ -66,6 +66,10 @@ export default function LocationDetailPage() {
   // Estado para controlar qué vista mostrar
   const [viewMode, setViewMode] = useState<'charts' | 'heatmap'>('charts')
   
+  // Estado para el dropdown de reportes
+  const [showReportDropdown, setShowReportDropdown] = useState(false)
+  const [generatingReport, setGeneratingReport] = useState(false)
+  
   // Estados para control de fechas de consulta
   const [startDate, setStartDate] = useState(() => {
     const date = new Date()
@@ -77,6 +81,21 @@ export default function LocationDetailPage() {
   })
   const [forceRefresh, setForceRefresh] = useState(false)
   const [temperatureError, setTemperatureError] = useState('')
+
+  // Efecto para cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('.report-dropdown-container')) {
+        setShowReportDropdown(false)
+      }
+    }
+
+    if (showReportDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showReportDropdown])
 
   // Cargar datos de la ubicación
   useEffect(() => {
@@ -212,6 +231,95 @@ export default function LocationDetailPage() {
     } catch (err) {
       console.error('Error deleting location:', err)
       alert('Error al eliminar la ubicación')
+    }
+  }
+
+  // Funciones para generar reportes
+  const generateExcelReport = async () => {
+    if (!location || temperatureData.length === 0) {
+      alert('No hay datos disponibles para generar el reporte')
+      return
+    }
+
+    try {
+      setGeneratingReport(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const params = new URLSearchParams({
+        locationId: locationId,
+        startDate: startDate,
+        endDate: endDate,
+        format: 'excel'
+      })
+
+      const response = await fetch(`/api/reports/temperature?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        }
+      })
+
+      if (response.ok) {
+        // Descargar el archivo
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `reporte_temperatura_${location.name.replace(/[^a-zA-Z0-9]/g, '_')}_${startDate}_${endDate}.xlsx`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      } else {
+        const result = await response.json()
+        alert(result.error || 'Error al generar el reporte Excel')
+      }
+    } catch (err) {
+      console.error('Error generating Excel report:', err)
+      alert('Error al generar el reporte Excel')
+    } finally {
+      setGeneratingReport(false)
+      setShowReportDropdown(false)
+    }
+  }
+
+  const generatePDFReport = async () => {
+    if (!location || temperatureData.length === 0) {
+      alert('No hay datos disponibles para generar el reporte')
+      return
+    }
+
+    try {
+      setGeneratingReport(true)
+      
+      // Usar la nueva utilidad de generación de PDF más simple
+      const { generateTemperaturePDFReport } = await import('@/lib/pdf-generator')
+      
+      // Convertir los datos al formato esperado
+      const reportData = {
+        location: {
+          id: location.id,
+          name: location.name,
+          clientName: location.clientName,
+          clientEmail: location.clientEmail,
+          latitude: Number(location.latitude),
+          longitude: Number(location.longitude),
+          areaHectares: null // No está disponible en esta interfaz
+        },
+        temperatureData,
+        temperatureStats: temperatureStats!,
+        startDate,
+        endDate
+      }
+      
+      await generateTemperaturePDFReport(reportData)
+
+    } catch (err) {
+      console.error('Error generating PDF report:', err)
+      alert('Error al generar el reporte PDF')
+    } finally {
+      setGeneratingReport(false)
+      setShowReportDropdown(false)
     }
   }
 
@@ -504,27 +612,85 @@ export default function LocationDetailPage() {
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Vista de datos
                     </h4>
-                    <div className="flex rounded-md shadow-sm">
-                      <button
-                        onClick={() => setViewMode('charts')}
-                        className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
-                          viewMode === 'charts'
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        📊 Gráficos
-                      </button>
-                      <button
-                        onClick={() => setViewMode('heatmap')}
-                        className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
-                          viewMode === 'heatmap'
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        🗺️ Mapa de Calor
-                      </button>
+                    <div className="flex items-center space-x-4">
+                      {/* Botón de generar reporte */}
+                      <div className="relative report-dropdown-container">
+                        <button
+                          onClick={() => setShowReportDropdown(!showReportDropdown)}
+                          disabled={generatingReport || temperatureData.length === 0}
+                          className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {generatingReport ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                              Generando...
+                            </>
+                          ) : (
+                            <>
+                              📊 Generar Reporte
+                              <svg className="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </>
+                          )}
+                        </button>
+
+                        {/* Dropdown de opciones */}
+                        {showReportDropdown && !generatingReport && (
+                          <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                            <div className="py-1">
+                              <button
+                                onClick={generateExcelReport}
+                                className="group flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
+                              >
+                                <svg className="mr-3 h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v10H4V5z"/>
+                                  <path d="M6 7h8v2H6V7zm0 4h8v2H6v-2z"/>
+                                </svg>
+                                Descargar Excel
+                                <span className="ml-auto text-xs text-gray-500">.xlsx</span>
+                              </button>
+                              <button
+                                onClick={generatePDFReport}
+                                className="group flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
+                              >
+                                <svg className="mr-3 h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd"/>
+                                  <path d="M8 10a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                                  <path d="M8 12a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                                  <path d="M8 14a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                                </svg>
+                                Descargar PDF
+                                <span className="ml-auto text-xs text-gray-500">.pdf</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Botones de vista */}
+                      <div className="flex rounded-md shadow-sm">
+                        <button
+                          onClick={() => setViewMode('charts')}
+                          className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
+                            viewMode === 'charts'
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          📊 Gráficos
+                        </button>
+                        <button
+                          onClick={() => setViewMode('heatmap')}
+                          className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
+                            viewMode === 'heatmap'
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          🗺️ Mapa de Calor
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -572,7 +738,7 @@ export default function LocationDetailPage() {
                         // Visualización con gráficos
                         <>
                       {/* Gráfico visual de temperatura */}
-                      <div className="mb-6">
+                      <div className="mb-6 temperature-chart">
                         <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                           Tendencia de Temperatura
                         </h4>
@@ -642,39 +808,52 @@ export default function LocationDetailPage() {
                       {/* Tabla de datos recientes */}
                       <div>
                         <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                          Datos Recientes
+                          Todos los Datos ({temperatureData.length} registros)
                         </h4>
                         <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                            <thead className="bg-gray-50 dark:bg-gray-700">
-                              <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                  Fecha
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                  Temperatura
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                  Fuente
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                              {temperatureData.slice(-10).reverse().map((record) => (
-                                <tr key={record.id}>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {new Date(record.date).toLocaleDateString('es-ES')}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                    {parseFloat(record.temperatureCelsius.toString()).toFixed(2)}°C
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                    {record.dataSource}
-                                  </td>
+                          <div className="max-h-96 overflow-y-auto">
+                            <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
+                              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                                <tr>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Fecha
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Temperatura
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Fuente
+                                  </th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {temperatureData.slice().reverse().map((record) => (
+                                  <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {new Date(record.date).toLocaleDateString('es-ES')}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {parseFloat(record.temperatureCelsius.toString()).toFixed(2)}°C
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                      <span className="inline-flex items-center">
+                                        🛰️ {record.dataSource}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {temperatureData.length > 10 && (
+                            <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 text-center">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                💡 Desplázate hacia arriba/abajo para ver todos los registros
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                         </>

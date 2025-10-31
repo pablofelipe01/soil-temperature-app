@@ -27,23 +27,29 @@ export async function GET(req: Request) {
     // Inicializar cliente ee
     const ee = await earthEngineClient.getEE()
 
-  // Crear punto y región (usar any para evitar incompatibilidades de tipos con la librería ee)
-  const point: any = ee.Geometry.Point([longitude, latitude])
-  const region: any = (point as any).buffer(radiusMeters).bounds()
-
+    // Crear punto y región
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const point = (ee as any).Geometry.Point([longitude, latitude])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const region = (point as any).buffer(radiusMeters).bounds()
+    
     // Fechas (usar rango por defecto si no se proporcionan)
     const defaultStart = startDate || '2024-01-01'
     const defaultEnd = endDate || new Date().toISOString().split('T')[0]
 
     // Construir colección Sentinel-2 Surface Reflectance con filtros de calidad
-    const collection: any = (ee as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const collection = (ee as any)
       .ImageCollection('COPERNICUS/S2_SR')
       .filterBounds(point)
       .filterDate(defaultStart, defaultEnd)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((ee as any).Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) // Menos del 20% de nubes
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((ee as any).Filter.lt('CLOUD_COVERAGE_ASSESSMENT', 20))
 
     // Función para enmascarar nubes usando la banda SCL (Scene Classification Layer)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const maskS2clouds = (image: any) => {
       const scl = image.select('SCL')
       // Valores SCL: 3=nubes sombras, 8=nubes medias, 9=nubes altas, 10=nubes cirrus, 11=nieve/hielo
@@ -55,22 +61,28 @@ export async function GET(req: Request) {
     const filtered = collection.map(maskS2clouds)
     
     // Verificar si hay imágenes disponibles
-    const imageCount: any = await filtered.size().getInfo()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const imageCount = await (filtered.size() as any).getInfo()
     
+    let ndvi
     if (imageCount === 0) {
       // Si no hay imágenes buenas, usar colección sin filtro de nubes pero con menos días
-      const fallbackCollection: any = (ee as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fallbackCollection = (ee as any)
         .ImageCollection('COPERNICUS/S2_SR')
         .filterBounds(point)
         .filterDate(defaultStart, defaultEnd)
         .sort('CLOUDY_PIXEL_PERCENTAGE')
         .limit(3) // Solo las 3 mejores imágenes disponibles
         
-      const fallbackComposite: any = fallbackCollection.median()
-      var ndvi: any = fallbackComposite.normalizedDifference(['B8', 'B4']).rename('NDVI')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fallbackComposite = (fallbackCollection as any).median()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ndvi = (fallbackComposite as any).normalizedDifference(['B8', 'B4']).rename('NDVI')
     } else {
       // Usar percentile 50 en lugar de median para mejor calidad
-      const composite: any = filtered.reduce((ee as any).Reducer.percentile([50]))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const composite = (filtered as any).reduce((ee as any).Reducer.percentile([50]))
       
       // Renombrar bandas para que coincidan con los nombres esperados
       const renamedComposite = composite.select(
@@ -79,7 +91,8 @@ export async function GET(req: Request) {
       )
 
       // Calcular NDVI con mejor rango
-      var ndvi: any = renamedComposite.normalizedDifference(['B8', 'B4']).rename('NDVI')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ndvi = (renamedComposite as any).normalizedDifference(['B8', 'B4']).rename('NDVI')
     }
 
     // Parámetros de visualización mejorados para agricultura
@@ -107,7 +120,8 @@ export async function GET(req: Request) {
       palette: visParams.palette
     }
 
-    const thumbnailUrl: string = await ndvi.getThumbURL(thumbOptions)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const thumbnailUrl: string = await (ndvi as any).getThumbURL(thumbOptions)
 
     return NextResponse.json({ success: true, url: thumbnailUrl })
   } catch (error) {

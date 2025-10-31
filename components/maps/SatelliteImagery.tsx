@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import Image from 'next/image'
 
 interface SatelliteImageryProps {
   latitude: number | string
@@ -290,7 +291,7 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
                         <button
                           key={range.key}
                           onClick={() => {
-                            setNdviDateRange(range.key as any)
+                            setNdviDateRange(range.key as 'week' | 'month' | 'quarter' | 'year')
                             // Re-fetch NDVI with new date range
                             setTimeout(fetchNdviThumbnail, 100)
                           }}
@@ -328,7 +329,7 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
                     ) : ndviUrl ? (
                       <div>
                         {/* Mostrar la miniatura NDVI retornada por el endpoint */}
-                        <img src={ndviUrl} alt={`NDVI ${locationName}`} style={{ width: '100%', height: 400, objectFit: 'cover' }} />
+                        <Image src={ndviUrl} alt={`NDVI ${locationName}`} width={512} height={400} style={{ width: '100%', height: 400, objectFit: 'cover' }} />
                         
                         {/* Panel informativo sobre NDVI */}
                         <div className="mt-4 bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">

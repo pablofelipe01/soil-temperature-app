@@ -882,7 +882,7 @@ export default function LocationDetailPage() {
                               </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                              {temperatureData.slice().reverse().map((record, index) => (
+                              {temperatureData.slice().reverse().map((record) => (
                                 <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {new Date(record.date).toLocaleDateString('es-ES', { 

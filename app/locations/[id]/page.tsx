@@ -16,6 +16,14 @@ const SimpleMap = dynamic(() => import('@/components/maps/SimpleMap'), {
   </div>
 })
 
+// Importar dinámicamente el componente de imagen satelital
+const SatelliteImagery = dynamic(() => import('@/components/maps/SatelliteImagery'), { 
+  ssr: false,
+  loading: () => <div className="h-96 w-full bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse flex items-center justify-center">
+    <span className="text-gray-500">Cargando imagen satelital...</span>
+  </div>
+})
+
 interface Location {
   id: string
   name: string
@@ -64,7 +72,7 @@ export default function LocationDetailPage() {
   const [loadingTemperature, setLoadingTemperature] = useState(false)
   
   // Estado para controlar qué vista mostrar
-  const [viewMode, setViewMode] = useState<'charts' | 'heatmap'>('charts')
+  const [viewMode, setViewMode] = useState<'charts' | 'heatmap' | 'satellite'>('charts')
   
   // Estado para el dropdown de reportes
   const [showReportDropdown, setShowReportDropdown] = useState(false)
@@ -715,13 +723,23 @@ export default function LocationDetailPage() {
                         </button>
                         <button
                           onClick={() => setViewMode('heatmap')}
-                          className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
+                          className={`px-4 py-2 text-sm font-medium border-t border-r border-b ${
                             viewMode === 'heatmap'
                               ? 'bg-blue-600 border-blue-600 text-white'
                               : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                           }`}
                         >
                           🗺️ Mapa de Calor
+                        </button>
+                        <button
+                          onClick={() => setViewMode('satellite')}
+                          className={`px-4 py-2 text-sm font-medium rounded-r-md border ${
+                            viewMode === 'satellite'
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          🛰️ Imagen Satelital
                         </button>
                       </div>
                     </div>
@@ -903,7 +921,7 @@ export default function LocationDetailPage() {
                         )}
                       </div>
                         </>
-                      ) : (
+                      ) : viewMode === 'heatmap' ? (
                         // Visualización con mapa de calor
                         <div className="space-y-6">
                           <div>
@@ -911,13 +929,7 @@ export default function LocationDetailPage() {
                               Mapa de Calor de Temperaturas
                             </h4>
                             <div className="relative">
-                              {viewMode === 'heatmap' ? (
-                                <SimpleMap locationId={locationId} />
-                              ) : (
-                                <div className="h-96 w-full bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                                  <span className="text-gray-500">Cambia a vista de mapa para cargar la visualización</span>
-                                </div>
-                              )}
+                              <SimpleMap locationId={locationId} />
                             </div>
                           </div>
                           
@@ -952,6 +964,13 @@ export default function LocationDetailPage() {
                             </div>
                           </div>
                         </div>
+                      ) : (
+                        // Visualización con imagen satelital
+                        <SatelliteImagery 
+                          latitude={Number(location.latitude)}
+                          longitude={Number(location.longitude)}
+                          locationName={location.name}
+                        />
                       )}
                     </>
                   ) : (

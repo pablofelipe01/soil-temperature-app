@@ -24,6 +24,14 @@ const SatelliteImagery = dynamic(() => import('@/components/maps/SatelliteImager
   </div>
 })
 
+// Importar dinámicamente el componente de timeline NDVI
+const NDVITimeline = dynamic(() => import('@/components/maps/NDVITimeline'), { 
+  ssr: false,
+  loading: () => <div className="h-96 w-full bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse flex items-center justify-center">
+    <span className="text-gray-500">Cargando timeline NDVI...</span>
+  </div>
+})
+
 interface Location {
   id: string
   name: string
@@ -72,7 +80,7 @@ export default function LocationDetailPage() {
   const [loadingTemperature, setLoadingTemperature] = useState(false)
   
   // Estado para controlar qué vista mostrar
-  const [viewMode, setViewMode] = useState<'charts' | 'heatmap' | 'satellite'>('charts')
+  const [viewMode, setViewMode] = useState<'charts' | 'heatmap' | 'satellite' | 'ndvi-timeline'>('charts')
   
   // Estado para el dropdown de reportes
   const [showReportDropdown, setShowReportDropdown] = useState(false)
@@ -112,18 +120,6 @@ export default function LocationDetailPage() {
     // SIN MÁS RESTRICCIONES - CUALQUIER FECHA ES VÁLIDA
     setDateValidation({ isValid: true })
     return true
-  }, [])
-
-  // Función para obtener fechas por defecto simples
-  const getDefaultDates = useCallback(() => {
-    const today = new Date()
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    
-    return { 
-      startDate: thirtyDaysAgo.toISOString().split('T')[0], 
-      endDate: today.toISOString().split('T')[0] 
-    }
   }, [])
 
   // Validación mínima solo cuando el usuario termine de escribir
@@ -580,7 +576,6 @@ export default function LocationDetailPage() {
                   
                   <button
                     onClick={() => {
-                      const defaultDates = getDefaultDates()
                       // Usar 7 días atrás desde la fecha máxima disponible
                       const maxDate = new Date('2025-07-30')
                       const sevenDaysAgo = new Date(maxDate)
@@ -884,13 +879,23 @@ export default function LocationDetailPage() {
                         </button>
                         <button
                           onClick={() => setViewMode('satellite')}
-                          className={`px-4 py-2 text-sm font-medium rounded-r-md border ${
+                          className={`px-4 py-2 text-sm font-medium border ${
                             viewMode === 'satellite'
                               ? 'bg-blue-600 border-blue-600 text-white'
                               : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                           }`}
                         >
                           🛰️ Imagen Satelital
+                        </button>
+                        <button
+                          onClick={() => setViewMode('ndvi-timeline')}
+                          className={`px-4 py-2 text-sm font-medium rounded-r-md border ${
+                            viewMode === 'ndvi-timeline'
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          📈 Timeline NDVI
                         </button>
                       </div>
                     </div>
@@ -1115,12 +1120,23 @@ export default function LocationDetailPage() {
                             </div>
                           </div>
                         </div>
-                      ) : (
+                      ) : viewMode === 'satellite' ? (
                         // Visualización con imagen satelital
                         <SatelliteImagery 
                           latitude={Number(location.latitude)}
                           longitude={Number(location.longitude)}
                           locationName={location.name}
+                          startDate={startDate}
+                          endDate={endDate}
+                        />
+                      ) : (
+                        // Timeline NDVI
+                        <NDVITimeline
+                          latitude={Number(location.latitude)}
+                          longitude={Number(location.longitude)}
+                          locationName={location.name}
+                          startDate={startDate}
+                          endDate={endDate}
                         />
                       )}
                     </>

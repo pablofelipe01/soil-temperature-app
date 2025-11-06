@@ -2,14 +2,17 @@ import { NextResponse } from 'next/server'
 import { earthEngineClient } from '@/lib/earth-engine/client'
 
 export async function GET(req: Request) {
+  const startTime = Date.now()
   try {
     const url = new URL(req.url)
     const latParam = url.searchParams.get('lat')
     const lonParam = url.searchParams.get('lon')
     const startDate = url.searchParams.get('startDate') || ''
     const endDate = url.searchParams.get('endDate') || ''
-    const sizeParam = url.searchParams.get('size') || '512'
+    const sizeParam = url.searchParams.get('size') || '256'
     const zoomRadiusMetersParam = url.searchParams.get('radiusMeters') || '2000'
+    
+    console.log(`🚀 [NDVI API] Nueva solicitud - Lat: ${latParam}, Lon: ${lonParam}, Período: ${startDate} a ${endDate}`)
 
     if (!latParam || !lonParam) {
       return NextResponse.json({ success: false, error: 'Parámetros lat/lon requeridos' }, { status: 400 })
@@ -37,62 +40,216 @@ export async function GET(req: Request) {
     const defaultStart = startDate || '2024-01-01'
     const defaultEnd = endDate || new Date().toISOString().split('T')[0]
 
-    // Construir colección Sentinel-2 Surface Reflectance con filtros de calidad
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const collection = (ee as any)
-      .ImageCollection('COPERNICUS/S2_SR')
-      .filterBounds(point)
-      .filterDate(defaultStart, defaultEnd)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((ee as any).Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) // Menos del 20% de nubes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((ee as any).Filter.lt('CLOUD_COVERAGE_ASSESSMENT', 20))
-
-    // Función para enmascarar nubes usando la banda SCL (Scene Classification Layer)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const maskS2clouds = (image: any) => {
-      const scl = image.select('SCL')
-      // Valores SCL: 3=nubes sombras, 8=nubes medias, 9=nubes altas, 10=nubes cirrus, 11=nieve/hielo
-      const cloudMask = scl.neq(3).and(scl.neq(8)).and(scl.neq(9)).and(scl.neq(10)).and(scl.neq(11))
-      return image.updateMask(cloudMask)
-    }
-
-    // Aplicar máscara de nubes y componer imagen
-    const filtered = collection.map(maskS2clouds)
-    
-    // Verificar si hay imágenes disponibles
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const imageCount = await (filtered.size() as any).getInfo()
-    
+    // Determinar qué satélite usar basado en la fecha
+    const startYear = new Date(defaultStart).getFullYear()
     let ndvi
-    if (imageCount === 0) {
-      // Si no hay imágenes buenas, usar colección sin filtro de nubes pero con menos días
+
+    if (startYear >= 2015) {
+      // Usar Sentinel-2 para 2015 en adelante con múltiples fallbacks
+      console.log('🛰️ Usando Sentinel-2 para', defaultStart, '-', defaultEnd)
+      
+      // Estrategia de múltiples intentos con filtros progresivamente menos restrictivos
+      let s2Collection
+      
+      // Intento 1: Filtros estrictos
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fallbackCollection = (ee as any)
-        .ImageCollection('COPERNICUS/S2_SR')
+      s2Collection = (ee as any)
+        .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
         .filterBounds(point)
         .filterDate(defaultStart, defaultEnd)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((ee as any).Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
         .sort('CLOUDY_PIXEL_PERCENTAGE')
-        .limit(3) // Solo las 3 mejores imágenes disponibles
-        
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fallbackComposite = (fallbackCollection as any).median()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ndvi = (fallbackComposite as any).normalizedDifference(['B8', 'B4']).rename('NDVI')
-    } else {
-      // Usar percentile 50 en lugar de median para mejor calidad
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const composite = (filtered as any).reduce((ee as any).Reducer.percentile([50]))
+        .limit(10)
       
-      // Renombrar bandas para que coincidan con los nombres esperados
-      const renamedComposite = composite.select(
-        ['B4_p50', 'B8_p50'],
-        ['B4', 'B8']
-      )
-
-      // Calcular NDVI con mejor rango
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ndvi = (renamedComposite as any).normalizedDifference(['B8', 'B4']).rename('NDVI')
+      let imageCount = await (s2Collection.size() as any).getInfo()
+      console.log(`📊 Sentinel-2 (filtro 20%): ${imageCount} imágenes encontradas`)
+      
+      // Intento 2: Si no hay imágenes, relajar filtros de nubes
+      if (imageCount === 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        s2Collection = (ee as any)
+          .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+          .filterBounds(point)
+          .filterDate(defaultStart, defaultEnd)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((ee as any).Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 50))
+          .sort('CLOUDY_PIXEL_PERCENTAGE')
+          .limit(10)
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        imageCount = await (s2Collection.size() as any).getInfo()
+        console.log(`📊 Sentinel-2 (filtro 50%): ${imageCount} imágenes encontradas`)
+      }
+      
+      // Intento 3: Sin filtros de nubes si aún no hay imágenes
+      if (imageCount === 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        s2Collection = (ee as any)
+          .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+          .filterBounds(point)
+          .filterDate(defaultStart, defaultEnd)
+          .sort('CLOUDY_PIXEL_PERCENTAGE')
+          .limit(5)
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        imageCount = await (s2Collection.size() as any).getInfo()
+        console.log(`📊 Sentinel-2 (sin filtro nubes): ${imageCount} imágenes encontradas`)
+      }
+      
+      // Intento 4: Usar colección SR normal si Harmonized falla
+      if (imageCount === 0) {
+        console.log('🔄 Intentando con COPERNICUS/S2_SR...')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        s2Collection = (ee as any)
+          .ImageCollection('COPERNICUS/S2_SR')
+          .filterBounds(point)
+          .filterDate(defaultStart, defaultEnd)
+          .sort('CLOUDY_PIXEL_PERCENTAGE')
+          .limit(5)
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        imageCount = await (s2Collection.size() as any).getInfo()
+        console.log(`📊 Sentinel-2 SR: ${imageCount} imágenes encontradas`)
+      }
+      
+      if (imageCount > 0) {
+        // Función simple de máscara de nubes para Sentinel-2
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const maskClouds = (image: any) => {
+          const qa = image.select('QA60')
+          const cloudBitMask = 1 << 10
+          const cirrusBitMask = 1 << 11
+          const mask = qa.bitwiseAnd(cloudBitMask).eq(0).and(qa.bitwiseAnd(cirrusBitMask).eq(0))
+          return image.updateMask(mask)
+        }
+
+        const s2Masked = s2Collection.map(maskClouds)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const s2Composite = (s2Masked as any).median()
+        
+        // Validar bandas disponibles en Sentinel-2
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const availableBands = await (s2Composite.bandNames() as any).getInfo()
+        console.log('🔍 Bandas disponibles en Sentinel-2:', availableBands)
+        
+        const nirBand = 'B8'
+        const redBand = 'B4'
+        
+        if (!availableBands.includes(nirBand) || !availableBands.includes(redBand)) {
+          throw new Error(`Bandas Sentinel-2 requeridas no encontradas. Necesarias: ${nirBand}, ${redBand}. Disponibles: ${availableBands.join(', ')}`)
+        }
+        
+        // Calcular NDVI con bandas validadas
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ndvi = (s2Composite as any).normalizedDifference([nirBand, redBand]).rename('NDVI')
+      } else {
+        throw new Error('No hay imágenes Sentinel-2 disponibles para este período y ubicación')
+      }
+      
+    } else {
+      // Usar Landsat para fechas anteriores a 2015 con múltiples fallbacks
+      console.log('🛰️ Usando Landsat para', defaultStart, '-', defaultEnd)
+      
+      let collection
+      let satelliteName
+      if (startYear >= 2013) {
+        // Landsat 8 (2013+)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        collection = (ee as any).ImageCollection('LANDSAT/LC08/C02/T1_L2')
+        satelliteName = 'Landsat 8'
+      } else if (startYear >= 1999) {
+        // Landsat 7 (1999-2013)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        collection = (ee as any).ImageCollection('LANDSAT/LE07/C02/T1_L2')
+        satelliteName = 'Landsat 7'
+      } else {
+        // Landsat 5 (1984-2012)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        collection = (ee as any).ImageCollection('LANDSAT/LT05/C02/T1_L2')
+        satelliteName = 'Landsat 5'
+      }
+
+      // Intento 1: Filtros estrictos
+      let landsatFiltered = collection
+        .filterBounds(point)
+        .filterDate(defaultStart, defaultEnd)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((ee as any).Filter.lt('CLOUD_COVER', 20))
+        .sort('CLOUD_COVER')
+        .limit(10)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let imageCount = await (landsatFiltered.size() as any).getInfo()
+      console.log(`📊 ${satelliteName} (filtro 20%): ${imageCount} imágenes encontradas`)
+
+      // Intento 2: Relajar filtros si no hay imágenes
+      if (imageCount === 0) {
+        landsatFiltered = collection
+          .filterBounds(point)
+          .filterDate(defaultStart, defaultEnd)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((ee as any).Filter.lt('CLOUD_COVER', 50))
+          .sort('CLOUD_COVER')
+          .limit(10)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        imageCount = await (landsatFiltered.size() as any).getInfo()
+        console.log(`📊 ${satelliteName} (filtro 50%): ${imageCount} imágenes encontradas`)
+      }
+
+      // Intento 3: Sin filtros de nubes
+      if (imageCount === 0) {
+        landsatFiltered = collection
+          .filterBounds(point)
+          .filterDate(defaultStart, defaultEnd)
+          .sort('CLOUD_COVER')
+          .limit(5)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        imageCount = await (landsatFiltered.size() as any).getInfo()
+        console.log(`📊 ${satelliteName} (sin filtro): ${imageCount} imágenes encontradas`)
+      }
+
+      if (imageCount === 0) {
+        throw new Error(`No hay imágenes ${satelliteName} disponibles para este período y ubicación`)
+      }
+
+      // Función de máscara para Landsat
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const maskLandsatClouds = (image: any) => {
+        const qa = image.select('QA_PIXEL')
+        const cloudMask = qa.bitwiseAnd(1 << 3).eq(0).and(qa.bitwiseAnd(1 << 4).eq(0))
+        return image.updateMask(cloudMask)
+      }
+
+      const landsatMasked = landsatFiltered.map(maskLandsatClouds)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const landsatComposite = (landsatMasked as any).median()
+      
+      // Validar que el composite tenga bandas antes de calcular NDVI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const availableBands = await (landsatComposite.bandNames() as any).getInfo()
+      console.log(`🔍 Bandas disponibles en ${satelliteName}:`, availableBands)
+      
+      // Verificar bandas requeridas según el satélite
+      let nirBand, redBand
+      if (startYear >= 2013) {
+        nirBand = 'SR_B5'
+        redBand = 'SR_B4'
+      } else {
+        nirBand = 'SR_B4'
+        redBand = 'SR_B3'
+      }
+      
+      if (!availableBands.includes(nirBand) || !availableBands.includes(redBand)) {
+        throw new Error(`Bandas requeridas no encontradas. Necesarias: ${nirBand}, ${redBand}. Disponibles: ${availableBands.join(', ')}`)
+      }
+      
+      // Calcular NDVI con bandas validadas
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ndvi = (landsatComposite as any).normalizedDifference([nirBand, redBand]).rename('NDVI')
     }
 
     // Parámetros de visualización optimizados para detectar estrés vegetativo
@@ -114,22 +271,67 @@ export async function GET(req: Request) {
       ]
     }
 
-    // Obtener URL de la miniatura (thumbnail)
+    // Configuración optimizada para velocidad
     const thumbOptions = {
       region: region,
-      dimensions: size,
+      dimensions: Math.min(size, 256), // Limitar tamaño máximo para velocidad
       format: 'png',
       min: visParams.min,
       max: visParams.max,
       palette: visParams.palette
     }
 
+    // Validar que el NDVI esté correctamente calculado
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const thumbnailUrl: string = await (ndvi as any).getThumbURL(thumbOptions)
+    const ndviBands = await (ndvi.bandNames() as any).getInfo()
+    console.log('🔍 Bandas NDVI calculadas:', ndviBands)
+    
+    if (!ndviBands.includes('NDVI')) {
+      throw new Error(`NDVI no calculado correctamente. Bandas disponibles: ${ndviBands.join(', ')}`)
+    }
 
-    return NextResponse.json({ success: true, url: thumbnailUrl })
+    console.log('🔄 Generando thumbnail NDVI...')
+    
+    // Timeout para evitar requests eternos
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const thumbnailPromise = (ndvi as any).getThumbURL(thumbOptions) as Promise<string>
+    const timeoutPromise: Promise<string> = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout: NDVI generation took too long')), 30000)
+    )
+    
+    const thumbnailUrl: string = await Promise.race([thumbnailPromise, timeoutPromise])
+    
+    const totalTime = Date.now() - startTime
+    console.log(`✅ [NDVI API] Thumbnail generado exitosamente en ${totalTime}ms`)
+    console.log(`🔗 URL original: ${thumbnailUrl.substring(0, 100)}...`)
+
+    // Crear URL proxied para evitar problemas de CORS/autenticación
+    const proxiedUrl = `/api/proxy/image?url=${encodeURIComponent(thumbnailUrl)}`
+    console.log(`🔀 URL proxied: ${proxiedUrl}`)
+
+    return NextResponse.json({ success: true, url: proxiedUrl })
   } catch (error) {
-    console.error('Error generating NDVI thumbnail:', error)
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Error desconocido' }, { status: 500 })
+    const totalTime = Date.now() - startTime
+    console.error(`❌ [NDVI API] Error después de ${totalTime}ms:`, error)
+    
+    // Usar fallback cuando Earth Engine falle
+    console.log('🔄 [NDVI API] Usando imagen sintética de fallback...')
+    
+    const fallbackParams = new URLSearchParams({
+      date: req.url.includes('startDate=') ? new URL(req.url).searchParams.get('startDate')! : new Date().toISOString().split('T')[0],
+      width: req.url.includes('size=') ? new URL(req.url).searchParams.get('size')! : '256',
+      height: req.url.includes('size=') ? new URL(req.url).searchParams.get('size')! : '256'
+    })
+    
+    const fallbackUrl = `/api/fallback/ndvi?${fallbackParams.toString()}`
+    
+    console.log(`✅ [NDVI API] Fallback creado: ${fallbackUrl}`)
+    
+    return NextResponse.json({ 
+      success: true, 
+      url: fallbackUrl,
+      fallback: true,
+      originalError: error instanceof Error ? error.message : 'Error desconocido'
+    })
   }
 }

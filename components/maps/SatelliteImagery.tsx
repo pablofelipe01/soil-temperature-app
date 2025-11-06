@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 
 interface SatelliteImageryProps {
   latitude: number | string
   longitude: number | string
   locationName: string
+  startDate?: string
+  endDate?: string
 }
 
 interface SatelliteLayer {
@@ -55,7 +57,7 @@ const zoomLevels = [
   { level: 18, name: 'Máximo', description: 'Máximo nivel de detalle' }
 ]
 
-export default function SatelliteImagery({ latitude, longitude, locationName }: SatelliteImageryProps) {
+export default function SatelliteImagery({ latitude, longitude, locationName, startDate, endDate }: SatelliteImageryProps) {
   // Convert coordinates to numbers if they're strings
   const lat = typeof latitude === 'string' ? parseFloat(latitude) : latitude
   const lng = typeof longitude === 'string' ? parseFloat(longitude) : longitude
@@ -67,7 +69,7 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
   const [displayMode, setDisplayMode] = useState<'base' | 'ndvi'>('base')
   const [ndviUrl, setNdviUrl] = useState<string | null>(null)
   const [loadingNdvi, setLoadingNdvi] = useState(false)
-  const [ndviDateRange, setNdviDateRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month')
+  const [ndviDateRange, _setNdviDateRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month')
 
   const generateMapUrl = () => {
     return `https://maps.google.com/maps?q=${lat},${lng}&t=${selectedLayer.mapType}&z=${zoomLevel}&ie=UTF8&iwloc=&output=embed`
@@ -102,7 +104,7 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
     return 40000
   }
 
-  const fetchNdviThumbnail = async () => {
+  const fetchNdviThumbnail = useCallback(async () => {
     // Ensure numeric coordinates
     if (typeof lat !== 'number' || typeof lng !== 'number' || Number.isNaN(lat) || Number.isNaN(lng)) {
       setError('Coordenadas inválidas para NDVI')
@@ -113,32 +115,39 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
     setError('')
 
     try {
-      const endDate = new Date().toISOString().split('T')[0]
-      const start = new Date()
+      // Usar las fechas del rango principal si están disponibles, si no usar rango por defecto
+      let finalStartDate = startDate
+      let finalEndDate = endDate
       
-      // Calculate start date based on selected range
-      switch (ndviDateRange) {
-        case 'week':
-          start.setDate(start.getDate() - 7)
-          break
-        case 'month':
-          start.setDate(start.getDate() - 30)
-          break
-        case 'quarter':
-          start.setDate(start.getDate() - 90)
-          break
-        case 'year':
-          start.setDate(start.getDate() - 365)
-          break
+      if (!finalStartDate || !finalEndDate) {
+        // Fallback al rango seleccionado si no hay fechas del filtro principal
+        const end = new Date()
+        const start = new Date()
+        
+        switch (ndviDateRange) {
+          case 'week':
+            start.setDate(start.getDate() - 7)
+            break
+          case 'month':
+            start.setDate(start.getDate() - 30)
+            break
+          case 'quarter':
+            start.setDate(start.getDate() - 90)
+            break
+          case 'year':
+            start.setDate(start.getDate() - 365)
+            break
+        }
+        
+        finalStartDate = start.toISOString().split('T')[0]
+        finalEndDate = end.toISOString().split('T')[0]
       }
-      
-      const startDate = start.toISOString().split('T')[0]
 
       const params = new URLSearchParams({
         lat: String(lat),
         lon: String(lng),
-        startDate,
-        endDate,
+        startDate: finalStartDate,
+        endDate: finalEndDate,
         size: '640',
         radiusMeters: String(zoomToRadiusMeters(zoomLevel))
       })
@@ -159,7 +168,14 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
     } finally {
       setLoadingNdvi(false)
     }
-  }
+  }, [lat, lng, startDate, endDate, ndviDateRange, zoomLevel])
+
+  // Actualizar NDVI automáticamente cuando cambien las fechas y esté en modo NDVI
+  useEffect(() => {
+    if (displayMode === 'ndvi' && startDate && endDate) {
+      fetchNdviThumbnail()
+    }
+  }, [startDate, endDate, displayMode, fetchNdviThumbnail])
 
   return (
     <div className="space-y-6">
@@ -275,38 +291,7 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
                   </button>
                 </div>
 
-                {/* NDVI Date Range Controls - only show when NDVI is selected */}
-                {displayMode === 'ndvi' && (
-                  <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <label className="block text-xs font-medium text-green-800 dark:text-green-300 mb-2">
-                      Período de análisis:
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { key: 'week', label: 'Última semana', days: 7 },
-                        { key: 'month', label: 'Último mes', days: 30 },
-                        { key: 'quarter', label: 'Últimos 3 meses', days: 90 },
-                        { key: 'year', label: 'Último año', days: 365 }
-                      ].map((range) => (
-                        <button
-                          key={range.key}
-                          onClick={() => {
-                            setNdviDateRange(range.key as 'week' | 'month' | 'quarter' | 'year')
-                            // Re-fetch NDVI with new date range
-                            setTimeout(fetchNdviThumbnail, 100)
-                          }}
-                          className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                            ndviDateRange === range.key
-                              ? 'bg-green-600 text-white'
-                              : 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-600 hover:bg-green-100 dark:hover:bg-green-800'
-                          }`}
-                        >
-                          {range.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+
 
                 {displayMode === 'base' ? (
                   <iframe
@@ -331,75 +316,16 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
                         {/* Mostrar la miniatura NDVI retornada por el endpoint */}
                         <Image src={ndviUrl} alt={`NDVI ${locationName}`} width={512} height={400} style={{ width: '100%', height: 400, objectFit: 'cover' }} />
                         
-                        {/* Panel informativo sobre NDVI y estrés vegetativo */}
-                        <div className="mt-4 bg-gradient-to-r from-red-50 via-yellow-50 to-green-50 dark:from-red-900/20 dark:via-yellow-900/20 dark:to-green-900/20 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                          <div className="flex">
-                            <div className="flex-shrink-0">
-                              <span className="text-2xl">�️�🌱</span>
-                            </div>
-                            <div className="ml-3">
-                              <h5 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
-                                <span className="bg-gradient-to-r from-red-600 to-green-600 bg-clip-text text-transparent">
-                                  Monitor de Estrés Vegetativo (NDVI)
-                                </span>
-                              </h5>
-                              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-3">
-                                <p className="font-medium">🎯 <strong>Interpretación de colores para detectar estrés:</strong></p>
-                                
-                                {/* Leyenda de colores más detallada */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-white dark:bg-gray-800 p-3 rounded-lg border">
-                                  <div className="flex items-center">
-                                    <div className="w-4 h-4 bg-blue-800 rounded mr-2 border"></div>
-                                    <span>🌊 <strong>Azul:</strong> Agua</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-4 h-4 bg-amber-700 rounded mr-2 border"></div>
-                                    <span>🟤 <strong>Marrón:</strong> Suelo desnudo/seco</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-4 h-4 bg-red-600 rounded mr-2 border"></div>
-                                    <span>🔴 <strong>Rojo:</strong> Vegetación muy estresada</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-4 h-4 bg-orange-500 rounded mr-2 border"></div>
-                                    <span>🟠 <strong>Naranja:</strong> Estrés severo</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-4 h-4 bg-yellow-400 rounded mr-2 border"></div>
-                                    <span>🟡 <strong>Amarillo:</strong> Estrés moderado</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-4 h-4 bg-lime-400 rounded mr-2 border"></div>
-                                    <span>🟢 <strong>Verde claro:</strong> Recuperándose</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-4 h-4 bg-green-500 rounded mr-2 border"></div>
-                                    <span>🟢 <strong>Verde:</strong> Saludable</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-4 h-4 bg-green-700 rounded mr-2 border"></div>
-                                    <span>🟢 <strong>Verde oscuro:</strong> Muy saludable</span>
-                                  </div>
-                                </div>
-
-                                {/* Alertas de estrés */}
-                                <div className="bg-gradient-to-r from-red-100 to-yellow-100 dark:from-red-900/30 dark:to-yellow-900/30 p-3 rounded-lg border-l-4 border-red-500">
-                                  <p className="text-xs font-semibold text-red-700 dark:text-red-300 flex items-center">
-                                    ⚠️ <strong className="ml-1">INDICADORES DE ESTRÉS:</strong>
-                                  </p>
-                                  <ul className="text-xs text-red-600 dark:text-red-400 mt-1 space-y-1 ml-4">
-                                    <li>• <strong>Rojos/Naranjas:</strong> Requieren atención inmediata</li>
-                                    <li>• <strong>Amarillos:</strong> Monitoreo frecuente recomendado</li>
-                                    <li>• <strong>Cambios temporales:</strong> Comparar con fechas anteriores</li>
-                                  </ul>
-                                </div>
-
-                                <p className="text-xs mt-2 italic bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-                                  💡 <strong>Uso agrícola:</strong> Los colores rojos y amarillos indican áreas que pueden necesitar riego, fertilización o atención fitosanitaria. Verde significa cultivos prósperos.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
+                        {/* Panel simplificado de NDVI */}
+                        <div className="mt-2 text-center">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            🌱 NDVI - Estrés Vegetativo
+                          </p>
+                          {startDate && endDate && (
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              📅 {startDate} - {endDate}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -505,29 +431,6 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
                   </ul>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Usage Tips */}
-      <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <span className="text-yellow-500 text-lg">💡</span>
-          </div>
-          <div className="ml-3">
-            <h5 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
-              Consejos de Uso
-            </h5>
-            <div className="text-sm text-yellow-700 dark:text-yellow-300">
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Usa la vista satelital para análisis visual del terreno</li>
-                <li>La vista híbrida es útil para orientación con referencias</li>
-                <li>El modo terreno muestra las características topográficas</li>
-                <li>Ajusta el zoom según el nivel de detalle necesario</li>
-                <li>Puedes hacer clic en el mapa para navegar interactivamente</li>
-              </ul>
             </div>
           </div>
         </div>

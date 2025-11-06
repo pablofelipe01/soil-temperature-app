@@ -221,313 +221,234 @@ export default function EditLocationPage() {
 
   return (
     <ProtectedLayout>
-      <div className="min-h-screen py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header mejorado */}
+      <div className="py-10">
+        <div className="max-w-3xl mx-auto sm:px-6 lg:px-8">
+          {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center mb-6">
+            <div className="flex items-center justify-between mb-4">
               <Link
                 href={`/locations/${locationId}`}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="text-blue-600 hover:text-blue-500 flex items-center"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Volver a detalles
+                ← Volver a detalles
               </Link>
             </div>
             
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-6">
-              <div className="text-center">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 sm:text-4xl mb-4">
-                  Editar Ubicación
-                </h1>
-                <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Modifica los datos de la ubicación: <span className="font-semibold">{location.name}</span>
-                </p>
-              </div>
-            </div>
+            <h1 className="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:text-3xl">
+              Editar Ubicación
+            </h1>
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+              Modifica los datos de la ubicación: {location.name}
+            </p>
           </div>
 
-          {/* Formulario mejorado */}
-          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20">
-            <form onSubmit={handleSubmit} className="divide-y divide-gray-200 dark:divide-gray-700">
-              {/* Error mejorado */}
+          {/* Formulario */}
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {error && (
-                <div className="p-6">
-                  <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
-                      </div>
-                    </div>
+                <div className="rounded-md bg-red-50 dark:bg-red-900 p-4">
+                  <div className="text-sm text-red-800 dark:text-red-200">
+                    {error}
                   </div>
                 </div>
               )}
 
-              {/* Información básica */}
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Información Básica
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Datos fundamentales de la ubicación de monitoreo
-                  </p>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                {/* Nombre */}
+                <div className="sm:col-span-2">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Nombre de la ubicación *
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Ej: Parcela Norte - Finca San Pedro"
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  {/* Nombre */}
-                  <div className="sm:col-span-2">
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Nombre de la ubicación *
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                      placeholder="Ej: Parcela Norte - Finca San Pedro"
-                    />
-                  </div>
-
-                  {/* Descripción */}
-                  <div className="sm:col-span-2">
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Descripción
-                    </label>
-                    <textarea
-                      id="description"
-                      rows={3}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                      placeholder="Descripción opcional de la ubicación..."
-                    />
-                  </div>
-
-                  {/* Cliente */}
-                  <div>
-                    <label htmlFor="clientName" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Nombre del cliente *
-                    </label>
-                    <input
-                      type="text"
-                      id="clientName"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      required
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                      placeholder="Nombre completo del cliente"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Email del cliente
-                    </label>
-                    <input
-                      type="email"
-                      id="clientEmail"
-                      value={clientEmail}
-                      onChange={(e) => setClientEmail(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                      placeholder="cliente@ejemplo.com"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Ubicación geográfica */}
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Ubicación Geográfica
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Coordenadas y elevación del sitio de monitoreo
-                  </p>
+                {/* Descripción */}
+                <div className="sm:col-span-2">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Descripción
+                  </label>
+                  <textarea
+                    id="description"
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Descripción opcional de la ubicación..."
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                  {/* Coordenadas */}
-                  <div>
-                    <label htmlFor="latitude" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Latitud *
-                    </label>
-                    <input
-                      type="number"
-                      id="latitude"
-                      step="any"
-                      value={latitude}
-                      onChange={(e) => setLatitude(e.target.value)}
-                      required
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                      placeholder="Ej: 4.123456"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="longitude" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Longitud *
-                    </label>
-                    <input
-                      type="number"
-                      id="longitude"
-                      step="any"
-                      value={longitude}
-                      onChange={(e) => setLongitude(e.target.value)}
-                      required
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                      placeholder="Ej: -73.654321"
-                    />
-                  </div>
-
-                  {/* Elevación */}
-                  <div>
-                    <label htmlFor="elevation" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Elevación (metros)
-                    </label>
-                    <input
-                      type="number"
-                      id="elevation"
-                      step="any"
-                      value={elevation}
-                      onChange={(e) => setElevation(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                      placeholder="Ej: 1250"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Características del suelo */}
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Características del Suelo
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Tipo de suelo y uso actual del terreno
-                  </p>
+                {/* Coordenadas */}
+                <div>
+                  <label htmlFor="latitude" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Latitud *
+                  </label>
+                  <input
+                    type="number"
+                    id="latitude"
+                    step="any"
+                    value={latitude}
+                    onChange={(e) => setLatitude(e.target.value)}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Ej: 4.123456"
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  {/* Tipo de suelo */}
-                  <div>
-                    <label htmlFor="soilType" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Tipo de suelo
-                    </label>
-                    <select
-                      id="soilType"
-                      value={soilType}
-                      onChange={(e) => setSoilType(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                    >
-                      <option value="">Seleccionar tipo...</option>
-                      <option value="Arcilloso">Arcilloso</option>
-                      <option value="Arenoso">Arenoso</option>
-                      <option value="Franco">Franco</option>
-                      <option value="Franco arcilloso">Franco arcilloso</option>
-                      <option value="Franco arenoso">Franco arenoso</option>
-                      <option value="Limoso">Limoso</option>
-                      <option value="Otro">Otro</option>
-                    </select>
-                  </div>
-
-                  {/* Uso del suelo */}
-                  <div>
-                    <label htmlFor="landUse" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      Uso del suelo
-                    </label>
-                    <select
-                      id="landUse"
-                      value={landUse}
-                      onChange={(e) => setLandUse(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors duration-200"
-                    >
-                      <option value="">Seleccionar uso...</option>
-                      <option value="Cultivo anual">Cultivo anual</option>
-                      <option value="Cultivo permanente">Cultivo permanente</option>
-                      <option value="Ganadería">Ganadería</option>
-                      <option value="Forestal">Forestal</option>
-                      <option value="Agroforestal">Agroforestal</option>
-                      <option value="Otro">Otro</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Estado y configuración */}
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    Estado y Configuración
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Configuración del estado de la ubicación
-                  </p>
+                <div>
+                  <label htmlFor="longitude" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Longitud *
+                  </label>
+                  <input
+                    type="number"
+                    id="longitude"
+                    step="any"
+                    value={longitude}
+                    onChange={(e) => setLongitude(e.target.value)}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Ej: -73.654321"
+                  />
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <div className="flex items-start">
-                    <div className="flex items-center h-5">
-                      <input
-                        id="isActive"
-                        type="checkbox"
-                        checked={isActive}
-                        onChange={(e) => setIsActive(e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded transition-colors duration-200"
-                      />
-                    </div>
-                    <div className="ml-3 text-sm">
-                      <label htmlFor="isActive" className="font-medium text-gray-900 dark:text-gray-100">
-                        Ubicación activa
-                      </label>
-                      <p className="text-gray-500 dark:text-gray-400">
-                        Las ubicaciones inactivas no aparecerán en las consultas de temperatura
-                      </p>
-                    </div>
-                  </div>
+                {/* Elevación */}
+                <div>
+                  <label htmlFor="elevation" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Elevación (metros)
+                  </label>
+                  <input
+                    type="number"
+                    id="elevation"
+                    step="any"
+                    value={elevation}
+                    onChange={(e) => setElevation(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Ej: 1250"
+                  />
                 </div>
-              </div>
 
-              {/* Botones mejorados */}
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 rounded-b-xl">
-                <div className="flex justify-end space-x-4">
-                  <Link
-                    href={`/locations/${locationId}`}
-                    className="inline-flex items-center px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                {/* Tipo de suelo */}
+                <div>
+                  <label htmlFor="soilType" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Tipo de suelo
+                  </label>
+                  <select
+                    id="soilType"
+                    value={soilType}
+                    onChange={(e) => setSoilType(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   >
-                    Cancelar
-                  </Link>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="inline-flex items-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                  >
-                    {saving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Guardando...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Guardar Cambios
-                      </>
-                    )}
-                  </button>
+                    <option value="">Seleccionar tipo...</option>
+                    <option value="Arcilloso">Arcilloso</option>
+                    <option value="Arenoso">Arenoso</option>
+                    <option value="Franco">Franco</option>
+                    <option value="Franco arcilloso">Franco arcilloso</option>
+                    <option value="Franco arenoso">Franco arenoso</option>
+                    <option value="Limoso">Limoso</option>
+                    <option value="Otro">Otro</option>
+                  </select>
                 </div>
+
+                {/* Uso del suelo */}
+                <div>
+                  <label htmlFor="landUse" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Uso del suelo
+                  </label>
+                  <select
+                    id="landUse"
+                    value={landUse}
+                    onChange={(e) => setLandUse(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar uso...</option>
+                    <option value="Cultivo anual">Cultivo anual</option>
+                    <option value="Cultivo permanente">Cultivo permanente</option>
+                    <option value="Ganadería">Ganadería</option>
+                    <option value="Forestal">Forestal</option>
+                    <option value="Agroforestal">Agroforestal</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+
+                {/* Cliente */}
+                <div>
+                  <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Nombre del cliente *
+                  </label>
+                  <input
+                    type="text"
+                    id="clientName"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Nombre completo del cliente"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Email del cliente
+                  </label>
+                  <input
+                    type="email"
+                    id="clientEmail"
+                    value={clientEmail}
+                    onChange={(e) => setClientEmail(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="cliente@ejemplo.com"
+                  />
+                </div>
+
+                {/* Estado */}
+                <div className="sm:col-span-2">
+                  <div className="flex items-center">
+                    <input
+                      id="isActive"
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={(e) => setIsActive(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                    />
+                    <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                      Ubicación activa
+                    </label>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Las ubicaciones inactivas no aparecerán en las consultas de temperatura
+                  </p>
+                </div>
+              </div>
+
+              {/* Botones */}
+              <div className="flex justify-end space-x-4">
+                <Link
+                  href={`/locations/${locationId}`}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Cancelar
+                </Link>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Guardando...
+                    </>
+                  ) : (
+                    'Guardar Cambios'
+                  )}
+                </button>
               </div>
             </form>
           </div>

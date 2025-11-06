@@ -78,54 +78,60 @@ export default function LocationDetailPage() {
   const [showReportDropdown, setShowReportDropdown] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
   
-  // Estados para control de fechas de consulta
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date()
-    date.setDate(date.getDate() - 30)
-    return date.toISOString().split('T')[0]
-  })
-  const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().split('T')[0]
-  })
+  // Estados para control de fechas de consulta - SIN RESTRICCIONES
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [forceRefresh, setForceRefresh] = useState(false)
   const [temperatureError, setTemperatureError] = useState('')
+  const [dateValidation, setDateValidation] = useState<{
+    isValid: boolean;
+    message?: string;
+    type?: 'warning' | 'error' | 'info';
+  }>({ isValid: true })
 
-  // Función para validar y corregir fechas
-  const validateAndCorrectDates = useCallback(() => {
-    const today = new Date().toISOString().split('T')[0]
-    let corrected = false
-
-    // Si la fecha de fin es futura, corregirla a hoy
-    if (endDate > today) {
-      setEndDate(today)
-      corrected = true
+  // Función para validar rango de fechas - VALIDACIÓN MÍNIMA SIN RESTRICCIONES
+  const validateDateRange = useCallback((start: string, end: string) => {
+    if (!start || !end) {
+      setDateValidation({ isValid: false, message: 'Selecciona ambas fechas para continuar', type: 'info' })
+      return false
     }
 
-    // Si la fecha de inicio es futura, corregirla a 30 días atrás
-    if (startDate > today) {
-      const date = new Date()
-      date.setDate(date.getDate() - 30)
-      setStartDate(date.toISOString().split('T')[0])
-      corrected = true
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      setDateValidation({ isValid: false, message: '⚠️ Una o ambas fechas son inválidas', type: 'error' })
+      return false
     }
 
-    // Si las fechas están invertidas, corregir
-    if (startDate > endDate) {
-      const date = new Date(endDate)
-      date.setDate(date.getDate() - 30)
-      setStartDate(date.toISOString().split('T')[0])
-      corrected = true
+    if (startDate >= endDate) {
+      setDateValidation({ isValid: false, message: '⚠️ La fecha de inicio debe ser anterior a la fecha de fin', type: 'warning' })
+      return false
     }
 
-    if (corrected) {
-      setTemperatureError('Las fechas fueron corregidas para mostrar datos válidos')
-    }
-  }, [startDate, endDate])
+    // SIN MÁS RESTRICCIONES - CUALQUIER FECHA ES VÁLIDA
+    setDateValidation({ isValid: true })
+    return true
+  }, [])
 
-  // Validar fechas al cambiar
+  // Función para obtener fechas por defecto simples
+  const getDefaultDates = useCallback(() => {
+    const today = new Date()
+    const thirtyDaysAgo = new Date(today)
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    
+    return { 
+      startDate: thirtyDaysAgo.toISOString().split('T')[0], 
+      endDate: today.toISOString().split('T')[0] 
+    }
+  }, [])
+
+  // Validación mínima solo cuando el usuario termine de escribir
   useEffect(() => {
-    validateAndCorrectDates()
-  }, [validateAndCorrectDates])
+    if (startDate && endDate) {
+      validateDateRange(startDate, endDate)
+    }
+  }, [startDate, endDate, validateDateRange])
 
   // Efecto para cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -574,8 +580,15 @@ export default function LocationDetailPage() {
                   
                   <button
                     onClick={() => {
-                      const endD = new Date().toISOString().split('T')[0]
-                      const startD = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                      const defaultDates = getDefaultDates()
+                      // Usar 7 días atrás desde la fecha máxima disponible
+                      const maxDate = new Date('2025-07-30')
+                      const sevenDaysAgo = new Date(maxDate)
+                      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+                      
+                      const endD = maxDate.toISOString().split('T')[0]
+                      const startD = sevenDaysAgo.toISOString().split('T')[0]
+                      
                       setStartDate(startD)
                       setEndDate(endD)
                       fetchTemperatureData(startD, endD, false)
@@ -619,82 +632,150 @@ export default function LocationDetailPage() {
                   </div>
                 </div>
                 
-                {/* Controles de consulta */}
+                {/* Controles de consulta mejorados */}
                 <div className="px-6 py-5 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
-                        Fecha de inicio
-                      </label>
-                      <input
-                        type="date"
-                        value={startDate}
-                        max={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          const selectedDate = e.target.value
-                          const today = new Date().toISOString().split('T')[0]
-                          
-                          if (selectedDate <= today) {
-                            setStartDate(selectedDate)
-                            setTemperatureError('')
-                          } else {
-                            setTemperatureError('No se pueden seleccionar fechas futuras')
-                          }
-                        }}
-                        className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2"
-                      />
+
+
+                  {/* Selectores de fecha personalizados */}
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    {/* Columna izquierda - Fechas */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                        🗓️ Rango Personalizado
+                      </h3>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Fecha de inicio
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="date"
+                              value={startDate || ''}
+                              onChange={(e) => {
+                                setStartDate(e.target.value)
+                                setTemperatureError('')
+                              }}
+                              onBlur={(e) => {
+                                validateDateRange(e.target.value, endDate)
+                              }}
+                              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-sm px-3 py-2.5 transition-colors"
+                              placeholder="01/01/1950"
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Fecha de fin
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="date"
+                              value={endDate || ''}
+                              onChange={(e) => {
+                                setEndDate(e.target.value)
+                                setTemperatureError('')
+                              }}
+                              onBlur={(e) => {
+                                validateDateRange(startDate, e.target.value)
+                              }}
+                              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-sm px-3 py-2.5 transition-colors"
+                              placeholder="30/07/2025"
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+
                     </div>
-                    
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
-                        Fecha de fin
-                      </label>
-                      <input
-                        type="date"
-                        value={endDate}
-                        max={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          const selectedDate = e.target.value
-                          const today = new Date().toISOString().split('T')[0]
-                          
-                          if (selectedDate <= today) {
-                            setEndDate(selectedDate)
-                            setTemperatureError('')
-                          } else {
-                            setTemperatureError('No se pueden seleccionar fechas futuras')
-                          }
-                        }}
-                        className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2"
-                      />
-                    </div>
-                    
-                    <div className="flex items-end">
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={forceRefresh}
-                          onChange={(e) => setForceRefresh(e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded cursor-pointer"
-                        />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                          Forzar actualización
-                        </span>
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-end">
-                      <button
-                        onClick={handleCustomQuery}
-                        disabled={loadingTemperature}
-                        className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <svg className={`mr-2 h-4 w-4 ${loadingTemperature ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={loadingTemperature ? "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" : "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"} />
-                        </svg>
-                        Consultar
-                      </button>
+
+                    {/* Columna derecha - Opciones y consulta */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                        ⚙️ Opciones de Consulta
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        <label className="flex items-center cursor-pointer p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={forceRefresh}
+                            onChange={(e) => setForceRefresh(e.target.checked)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                          />
+                          <div className="ml-3">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              🔄 Forzar actualización desde Google Earth Engine
+                            </span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Obtener los datos más recientes disponibles
+                            </p>
+                          </div>
+                        </label>
+
+                        <button
+                          onClick={handleCustomQuery}
+                          disabled={loadingTemperature || !dateValidation.isValid}
+                          className="w-full inline-flex justify-center items-center px-6 py-3 border border-transparent rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
+                        >
+                          <svg className={`mr-2 h-5 w-5 ${loadingTemperature ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={loadingTemperature ? "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" : "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"} />
+                          </svg>
+                          {loadingTemperature ? 'Consultando...' : '🔍 Consultar Datos'}
+                        </button>
+
+                        {/* Notificaciones de validación */}
+                        {dateValidation.message && (
+                          <div className={`p-3 rounded-lg border text-sm ${
+                            dateValidation.type === 'error' 
+                              ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                              : dateValidation.type === 'warning'
+                              ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300'
+                              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                          }`}>
+                            <div className="flex items-center">
+                              <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {dateValidation.type === 'error' ? (
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                ) : (
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                )}
+                              </svg>
+                              <span>{dateValidation.message}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                          <div className="flex items-center justify-center space-x-1">
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>
+                              {dateValidation.isValid 
+                                ? 'Rango de fechas válido - Listo para consultar' 
+                                : 'Ajusta el rango de fechas para continuar'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                  
+
                   
                   {temperatureError && (
                     <div className="mt-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800">
@@ -1056,16 +1137,33 @@ export default function LocationDetailPage() {
                       <div className="flex flex-col sm:flex-row gap-3 justify-center items-center max-w-md mx-auto">
                         <button
                           onClick={() => {
-                            const endD = new Date().toISOString().split('T')[0]
-                            const startD = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                            setStartDate(startD)
-                            setEndDate(endD)
-                            fetchTemperatureData(startD, endD, true)
+                            try {
+                              // Usar fechas válidas según los datos disponibles
+                              const maxDate = new Date('2025-07-30')
+                              const startDateObj = new Date(maxDate)
+                              startDateObj.setDate(startDateObj.getDate() - 90)
+                              
+                              // Asegurar que no sea anterior al mínimo permitido
+                              const minDate = new Date('1950-01-01')
+                              if (startDateObj < minDate) {
+                                startDateObj.setTime(minDate.getTime())
+                              }
+                              
+                              const startD = startDateObj.toISOString().split('T')[0]
+                              const endD = maxDate.toISOString().split('T')[0]
+                              
+                              setStartDate(startD)
+                              setEndDate(endD)
+                              fetchTemperatureData(startD, endD, true)
+                            } catch (error) {
+                              console.error('Error setting default dates:', error)
+                              setTemperatureError('Error al establecer fechas por defecto')
+                            }
                           }}
                           disabled={loadingTemperature}
                           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          � Obtener datos (90 días)
+                          📊 Obtener datos (90 días)
                         </button>
                         
                         <button

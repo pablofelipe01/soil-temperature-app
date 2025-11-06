@@ -51,7 +51,7 @@ export default function NDVITimeline({
     return dates
   }
 
-  const fetchNDVIForDate = async (date: string): Promise<string | null> => {
+  const fetchNDVIForDate = useCallback(async (date: string): Promise<string | null> => {
     console.log(`🔍 [NDVI FETCH] Iniciando fetch para ${date}`)
     try {
       // Crear un rango de un mes centrado en la fecha
@@ -153,7 +153,7 @@ export default function NDVITimeline({
       console.log(`🎨 [NDVI FETCH] Fallback final para ${date}: ${fallbackUrl}`)
       return fallbackUrl
     }
-  }
+  }, [lat, lng])
 
   const loadTimelineData = useCallback(async () => {
     if (!startDate || !endDate || !lat || !lng) return
@@ -255,7 +255,7 @@ export default function NDVITimeline({
     })
     
     setLoading(false)
-  }, [startDate, endDate, lat, lng, maxPeriods])
+  }, [startDate, endDate, lat, lng, maxPeriods, fetchNDVIForDate])
 
   useEffect(() => {
     if (startDate && endDate) {

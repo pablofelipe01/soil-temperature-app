@@ -331,38 +331,71 @@ export default function SatelliteImagery({ latitude, longitude, locationName }: 
                         {/* Mostrar la miniatura NDVI retornada por el endpoint */}
                         <Image src={ndviUrl} alt={`NDVI ${locationName}`} width={512} height={400} style={{ width: '100%', height: 400, objectFit: 'cover' }} />
                         
-                        {/* Panel informativo sobre NDVI */}
-                        <div className="mt-4 bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
+                        {/* Panel informativo sobre NDVI y estrés vegetativo */}
+                        <div className="mt-4 bg-gradient-to-r from-red-50 via-yellow-50 to-green-50 dark:from-red-900/20 dark:via-yellow-900/20 dark:to-green-900/20 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                           <div className="flex">
                             <div className="flex-shrink-0">
-                              <span className="text-green-500 text-lg">🌱</span>
+                              <span className="text-2xl">�️�🌱</span>
                             </div>
                             <div className="ml-3">
-                              <h5 className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-                                Índice de Vegetación (NDVI)
+                              <h5 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
+                                <span className="bg-gradient-to-r from-red-600 to-green-600 bg-clip-text text-transparent">
+                                  Monitor de Estrés Vegetativo (NDVI)
+                                </span>
                               </h5>
-                              <div className="text-sm text-green-700 dark:text-green-300 space-y-2">
-                                <p>El NDVI mide la salud y densidad de la vegetación usando datos satelitales:</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-3">
+                                <p className="font-medium">🎯 <strong>Interpretación de colores para detectar estrés:</strong></p>
+                                
+                                {/* Leyenda de colores más detallada */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-white dark:bg-gray-800 p-3 rounded-lg border">
                                   <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-amber-600 rounded mr-2"></div>
-                                    <span>🟤 Marrón: Suelo desnudo, poca vegetación</span>
+                                    <div className="w-4 h-4 bg-blue-800 rounded mr-2 border"></div>
+                                    <span>🌊 <strong>Azul:</strong> Agua</span>
                                   </div>
                                   <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-yellow-400 rounded mr-2"></div>
-                                    <span>🟡 Amarillo: Vegetación escasa o estresada</span>
+                                    <div className="w-4 h-4 bg-amber-700 rounded mr-2 border"></div>
+                                    <span>🟤 <strong>Marrón:</strong> Suelo desnudo/seco</span>
                                   </div>
                                   <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-lime-400 rounded mr-2"></div>
-                                    <span>🟢 Verde claro: Vegetación moderada</span>
+                                    <div className="w-4 h-4 bg-red-600 rounded mr-2 border"></div>
+                                    <span>🔴 <strong>Rojo:</strong> Vegetación muy estresada</span>
                                   </div>
                                   <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-green-600 rounded mr-2"></div>
-                                    <span>🟢 Verde oscuro: Vegetación densa y saludable</span>
+                                    <div className="w-4 h-4 bg-orange-500 rounded mr-2 border"></div>
+                                    <span>🟠 <strong>Naranja:</strong> Estrés severo</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <div className="w-4 h-4 bg-yellow-400 rounded mr-2 border"></div>
+                                    <span>🟡 <strong>Amarillo:</strong> Estrés moderado</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <div className="w-4 h-4 bg-lime-400 rounded mr-2 border"></div>
+                                    <span>🟢 <strong>Verde claro:</strong> Recuperándose</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <div className="w-4 h-4 bg-green-500 rounded mr-2 border"></div>
+                                    <span>🟢 <strong>Verde:</strong> Saludable</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <div className="w-4 h-4 bg-green-700 rounded mr-2 border"></div>
+                                    <span>🟢 <strong>Verde oscuro:</strong> Muy saludable</span>
                                   </div>
                                 </div>
-                                <p className="text-xs mt-2 italic">
-                                  💡 Valores altos (verde) indican cultivos saludables y vigorosos. Útil para monitoreo agrícola y detección temprana de estrés en las plantas.
+
+                                {/* Alertas de estrés */}
+                                <div className="bg-gradient-to-r from-red-100 to-yellow-100 dark:from-red-900/30 dark:to-yellow-900/30 p-3 rounded-lg border-l-4 border-red-500">
+                                  <p className="text-xs font-semibold text-red-700 dark:text-red-300 flex items-center">
+                                    ⚠️ <strong className="ml-1">INDICADORES DE ESTRÉS:</strong>
+                                  </p>
+                                  <ul className="text-xs text-red-600 dark:text-red-400 mt-1 space-y-1 ml-4">
+                                    <li>• <strong>Rojos/Naranjas:</strong> Requieren atención inmediata</li>
+                                    <li>• <strong>Amarillos:</strong> Monitoreo frecuente recomendado</li>
+                                    <li>• <strong>Cambios temporales:</strong> Comparar con fechas anteriores</li>
+                                  </ul>
+                                </div>
+
+                                <p className="text-xs mt-2 italic bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                                  💡 <strong>Uso agrícola:</strong> Los colores rojos y amarillos indican áreas que pueden necesitar riego, fertilización o atención fitosanitaria. Verde significa cultivos prósperos.
                                 </p>
                               </div>
                             </div>

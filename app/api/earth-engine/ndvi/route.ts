@@ -95,18 +95,22 @@ export async function GET(req: Request) {
       ndvi = (renamedComposite as any).normalizedDifference(['B8', 'B4']).rename('NDVI')
     }
 
-    // Parámetros de visualización mejorados para agricultura
+    // Parámetros de visualización optimizados para detectar estrés vegetativo
     const visParams = {
-      min: -0.2,  // Valores más negativos para agua/suelo desnudo
-      max: 0.8,   // Valores más altos para vegetación densa
+      min: -0.3,  // Incluir agua y suelos muy secos
+      max: 0.9,   // Vegetación muy densa
       palette: [
-        '#8B4513', // Marrón para suelo desnudo/seco
-        '#D2691E', // Marrón claro
-        '#DAA520', // Dorado para vegetación escasa
-        '#ADFF2F', // Verde amarillento para vegetación moderada
-        '#32CD32', // Verde lima para vegetación buena
-        '#228B22', // Verde bosque para vegetación densa
-        '#006400'  // Verde oscuro para vegetación muy densa
+        '#000080', // Azul oscuro: Agua
+        '#8B4513', // Marrón: Suelo desnudo/muy seco (ESTRÉS MÁXIMO)
+        '#D2691E', // Marrón claro: Suelo con poca materia orgánica
+        '#FF4500', // Rojo naranja: Vegetación muy estresada/muriendo
+        '#FF6347', // Rojo tomate: Vegetación estresada
+        '#FFD700', // Amarillo dorado: Vegetación con estrés moderado
+        '#ADFF2F', // Verde amarillento: Vegetación recuperándose
+        '#32CD32', // Verde lima: Vegetación buena
+        '#228B22', // Verde bosque: Vegetación muy buena
+        '#006400', // Verde oscuro: Vegetación óptima
+        '#004225'  // Verde muy oscuro: Vegetación exuberante
       ]
     }
 

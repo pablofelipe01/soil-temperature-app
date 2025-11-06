@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Configuración de imágenes para Google Earth Engine
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'earthengine.googleapis.com',
+        port: '',
+        pathname: '/v1/**',
+      },
+    ],
+  },
+  
   // Optimización para mejor estabilidad de webpack
   webpack: (config, { dev }) => {
     if (dev) {

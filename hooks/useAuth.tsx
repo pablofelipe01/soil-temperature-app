@@ -19,11 +19,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Obtener sesión inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    // Obtener usuario autenticado de manera segura
+    const getInitialUser = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (error) {
+          console.error('Error getting user:', error)
+          setUser(null)
+        } else {
+          setUser(user)
+        }
+      } catch (error) {
+        console.error('Error in getUser:', error)
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    getInitialUser()
 
     // Escuchar cambios de autenticación
     const {

@@ -90,6 +90,43 @@ export default function LocationDetailPage() {
   const [forceRefresh, setForceRefresh] = useState(false)
   const [temperatureError, setTemperatureError] = useState('')
 
+  // Función para validar y corregir fechas
+  const validateAndCorrectDates = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0]
+    let corrected = false
+
+    // Si la fecha de fin es futura, corregirla a hoy
+    if (endDate > today) {
+      setEndDate(today)
+      corrected = true
+    }
+
+    // Si la fecha de inicio es futura, corregirla a 30 días atrás
+    if (startDate > today) {
+      const date = new Date()
+      date.setDate(date.getDate() - 30)
+      setStartDate(date.toISOString().split('T')[0])
+      corrected = true
+    }
+
+    // Si las fechas están invertidas, corregir
+    if (startDate > endDate) {
+      const date = new Date(endDate)
+      date.setDate(date.getDate() - 30)
+      setStartDate(date.toISOString().split('T')[0])
+      corrected = true
+    }
+
+    if (corrected) {
+      setTemperatureError('Las fechas fueron corregidas para mostrar datos válidos')
+    }
+  }, [startDate, endDate])
+
+  // Validar fechas al cambiar
+  useEffect(() => {
+    validateAndCorrectDates()
+  }, [validateAndCorrectDates])
+
   // Efecto para cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -109,8 +146,12 @@ export default function LocationDetailPage() {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) return
+        // Obtener la sesión para el access token
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError || !session) return
+
+        // Debug: Log para diagnosticar problemas de autenticación
+        console.log(`[CLIENT] Fetching location ${locationId} with user ${session.user.id}`)
 
         const response = await fetch(`/api/locations/${locationId}`, {
           headers: {
@@ -153,8 +194,15 @@ export default function LocationDetailPage() {
     setTemperatureError('')
     
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
+      // Obtener sesión para access token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session) {
+        setTemperatureError('Error de autenticación. Por favor, inicia sesión nuevamente.')
+        return
+      }
+
+      // Debug: Log para diagnosticar problemas de autenticación
+      console.log(`[CLIENT] Fetching temperature data for location ${locationId} with user ${session.user.id}`)
 
       const params = new URLSearchParams({
         locationId: locationId,
@@ -581,7 +629,18 @@ export default function LocationDetailPage() {
                       <input
                         type="date"
                         value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const selectedDate = e.target.value
+                          const today = new Date().toISOString().split('T')[0]
+                          
+                          if (selectedDate <= today) {
+                            setStartDate(selectedDate)
+                            setTemperatureError('')
+                          } else {
+                            setTemperatureError('No se pueden seleccionar fechas futuras')
+                          }
+                        }}
                         className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2"
                       />
                     </div>
@@ -593,7 +652,18 @@ export default function LocationDetailPage() {
                       <input
                         type="date"
                         value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          const selectedDate = e.target.value
+                          const today = new Date().toISOString().split('T')[0]
+                          
+                          if (selectedDate <= today) {
+                            setEndDate(selectedDate)
+                            setTemperatureError('')
+                          } else {
+                            setTemperatureError('No se pueden seleccionar fechas futuras')
+                          }
+                        }}
                         className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-3 py-2"
                       />
                     </div>

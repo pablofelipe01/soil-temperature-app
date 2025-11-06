@@ -44,6 +44,18 @@ export async function GET(request: NextRequest) {
 
     const { locationId, startDate, endDate, forceRefresh } = validationResult.data
 
+    // Validar que las fechas no sean futuras (a menos que sea una prueba explícita)
+    const today = new Date().toISOString().split('T')[0]
+    if (startDate > today) {
+      return NextResponse.json(
+        { 
+          error: 'No se pueden solicitar datos de fechas futuras',
+          suggestion: `La fecha de inicio no puede ser posterior a ${today}`
+        },
+        { status: 400 }
+      )
+    }
+
     // Verificar que la ubicación pertenezca al usuario
     const location = await prisma.location.findFirst({
       where: {
@@ -54,8 +66,25 @@ export async function GET(request: NextRequest) {
     })
 
     if (!location) {
+      // Log para debug - verificar si es problema de autorización o ubicación inexistente
+      console.log(`[DEBUG] Location not found. LocationId: ${locationId}, UserId: ${userId}`)
+      
+      // Verificar si la ubicación existe pero no pertenece al usuario
+      const locationExists = await prisma.location.findFirst({
+        where: { id: locationId, isActive: true },
+        select: { id: true, userId: true }
+      })
+      
+      if (locationExists) {
+        console.log(`[DEBUG] Location exists but belongs to user: ${locationExists.userId}`)
+        return NextResponse.json(
+          { error: 'No tienes permisos para acceder a esta ubicación' },
+          { status: 403 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: 'Ubicación no encontrada o no autorizada' },
+        { error: 'Ubicación no encontrada' },
         { status: 404 }
       )
     }

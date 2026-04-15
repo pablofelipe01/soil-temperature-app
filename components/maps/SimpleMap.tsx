@@ -420,7 +420,8 @@ export default function SimpleMap({ locationId, locations }: SimpleMapProps) {
               <div style="font-family: system-ui; padding: 8px; min-width: 180px;">
                 <strong style="color: #374151; font-size: 14px;">${loc.name}</strong><br/>
                 ${temp != null
-                  ? `<span style="color: ${color}; font-weight: bold; font-size: 15px;">🌡️ ${temp.toFixed(1)}°C</span><br/>`
+                  ? `<span style="color: ${color}; font-weight: bold; font-size: 15px;">🌡️ ${temp.toFixed(1)}°C</span><br/>
+                     <small style="color: #6b7280;">📏 Profundidad: 0–7 cm</small><br/>`
                   : '<span style="color: #9CA3AF;">Sin datos de temperatura</span><br/>'
                 }
                 ${loc.latestDate

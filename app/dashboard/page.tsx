@@ -19,7 +19,7 @@ const SimpleMap = dynamic(() => import('@/components/maps/SimpleMap'), {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [mapLocations, setMapLocations] = useState<MapLocation[]>([])
+  const [mapLocations, setMapLocations] = useState<MapLocation[] | null>(null)
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -94,7 +94,24 @@ export default function DashboardPage() {
             </span>
           </CardHeader>
           <CardBody className="p-4">
-            <SimpleMap locations={mapLocations} />
+            {mapLocations !== null && mapLocations.length === 0 ? (
+              <div className="w-full h-96 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
+                <div className="text-center">
+                  <MapPin className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 dark:text-gray-400 font-medium mb-1">No tienes ubicaciones activas</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">Crea tu primera ubicación para ver datos de temperatura en el mapa.</p>
+                  <Link
+                    href="/locations/new"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Nueva Ubicación
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <SimpleMap locations={mapLocations ?? undefined} />
+            )}
           </CardBody>
         </Card>
 

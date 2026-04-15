@@ -44,6 +44,18 @@ export async function GET(request: NextRequest) {
 
     const { locationId, startDate, endDate, forceRefresh } = validationResult.data
 
+    // Validar que las fechas no sean futuras (a menos que sea una prueba explícita)
+    const today = new Date().toISOString().split('T')[0]
+    if (startDate > today) {
+      return NextResponse.json(
+        { 
+          error: 'No se pueden solicitar datos de fechas futuras',
+          suggestion: `La fecha de inicio no puede ser posterior a ${today}`
+        },
+        { status: 400 }
+      )
+    }
+
     // Verificar que la ubicación pertenezca al usuario
     const location = await prisma.location.findFirst({
       where: {
@@ -54,8 +66,25 @@ export async function GET(request: NextRequest) {
     })
 
     if (!location) {
+      // Log para debug - verificar si es problema de autorización o ubicación inexistente
+      console.log(`[DEBUG] Location not found. LocationId: ${locationId}, UserId: ${userId}`)
+      
+      // Verificar si la ubicación existe pero no pertenece al usuario
+      const locationExists = await prisma.location.findFirst({
+        where: { id: locationId, isActive: true },
+        select: { id: true, userId: true }
+      })
+      
+      if (locationExists) {
+        console.log(`[DEBUG] Location exists but belongs to user: ${locationExists.userId}`)
+        return NextResponse.json(
+          { error: 'No tienes permisos para acceder a esta ubicación' },
+          { status: 403 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: 'Ubicación no encontrada o no autorizada' },
+        { error: 'Ubicación no encontrada' },
         { status: 404 }
       )
     }
@@ -265,14 +294,15 @@ async function fetchTemperatureFromGEE(
   }
 }
 
-// Tipos para los datos de temperatura
-interface TemperatureRecord {
-  date: string
-  temperature: number
-  metadata?: Record<string, unknown>
-}
+// Tipos para los datos de temperatura - comentado porque no se usa actualmente
+// interface TemperatureRecord {
+//   date: string
+//   temperature: number
+//   metadata?: Record<string, unknown>
+// }
 
-// Función para guardar datos de temperatura en la base de datos
+// Función para guardar datos de temperatura en la base de datos - comentada porque no se usa actualmente
+/*
 interface GEETemperatureRecord {
   date: string
   temperature_level_1?: number
@@ -316,6 +346,7 @@ async function saveTemperatureData(locationId: string, temperatureData: GEETempe
 
   return savedRecords
 }
+*/
 
 // Función auxiliar para generar rango de fechas
 function getDaysInRange(startDate: string, endDate: string): string[] {

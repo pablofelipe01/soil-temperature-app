@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     
     // Parámetros de filtro opcionales
-    const isActive = searchParams.get('active') === 'true'
+    const activeParam = searchParams.get('active')
+    const isActive = activeParam === 'true' ? true : activeParam === 'false' ? false : null
     const clientName = searchParams.get('client')
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
@@ -54,7 +55,8 @@ export async function GET(request: NextRequest) {
       userId: userId
     }
 
-    if (typeof isActive === 'boolean') {
+    // Solo aplicar filtro de isActive si se especifica explícitamente
+    if (isActive !== null) {
       whereClause.isActive = isActive
     }
 

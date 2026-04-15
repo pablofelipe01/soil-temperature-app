@@ -63,14 +63,14 @@ export default function RegisterForm({ onToggleMode }: RegisterFormProps) {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-white shadow-md rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">
+      <div className="backdrop-blur-lg bg-white/10 border border-white/20 rounded-2xl p-8 shadow-2xl">
+        <h2 className="text-2xl font-light text-center text-white mb-8 tracking-wide">
           Crear Cuenta
         </h2>
         
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleRegister} className="space-y-6">
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="fullName" className="block text-sm font-medium text-gray-200 mb-2">
               Nombre Completo
             </label>
             <input
@@ -79,13 +79,13 @@ export default function RegisterForm({ onToggleMode }: RegisterFormProps) {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all duration-300"
               placeholder="Tu nombre completo"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
               Email
             </label>
             <input
@@ -94,13 +94,13 @@ export default function RegisterForm({ onToggleMode }: RegisterFormProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all duration-300"
               placeholder="tu@email.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-2">
               Contraseña
             </label>
             <input
@@ -109,13 +109,13 @@ export default function RegisterForm({ onToggleMode }: RegisterFormProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all duration-300"
               placeholder="••••••••"
             />
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-200 mb-2">
               Confirmar Contraseña
             </label>
             <input
@@ -124,19 +124,19 @@ export default function RegisterForm({ onToggleMode }: RegisterFormProps) {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all duration-300"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
+            <div className="text-red-300 text-sm bg-red-500/20 border border-red-400/30 p-3 rounded-xl backdrop-blur-sm">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="text-green-600 text-sm bg-green-50 p-3 rounded-md">
+            <div className="text-green-300 text-sm bg-green-500/20 border border-green-400/30 p-3 rounded-xl backdrop-blur-sm">
               {success}
             </div>
           )}
@@ -144,18 +144,18 @@ export default function RegisterForm({ onToggleMode }: RegisterFormProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-green-600/40 hover:bg-green-600/60 border border-green-400/30 hover:border-green-300/60 rounded-xl text-white font-medium backdrop-blur-sm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-400/50 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-green-500/25"
           >
             {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-300">
             ¿Ya tienes una cuenta?{' '}
             <button
               onClick={onToggleMode}
-              className="font-medium text-green-600 hover:text-green-500"
+              className="font-medium text-green-300 hover:text-green-200 transition-colors duration-200"
             >
               Inicia sesión aquí
             </button>

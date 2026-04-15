@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Configuración de imágenes para Google Earth Engine
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'earthengine.googleapis.com',
+        port: '',
+        pathname: '/v1/**',
+      },
+    ],
+  },
+  
   // Optimización para mejor estabilidad de webpack
   webpack: (config, { dev }) => {
     if (dev) {
@@ -12,7 +24,7 @@ const nextConfig: NextConfig = {
       }
     }
     
-    // Optimización para Leaflet
+    // Optimización para Leaflet y módulos de reportes
     config.resolve.alias = {
       ...config.resolve.alias,
       'leaflet': 'leaflet/dist/leaflet.js'
@@ -21,18 +33,11 @@ const nextConfig: NextConfig = {
     return config
   },
   
-  // Configuración de Turbopack para mejor hot reload
-  turbo: {
-    rules: {
-      '*.svg': {
-        loaders: ['@svgr/webpack'],
-        as: '*.js',
-      },
-    },
-  },
-  
   // Optimización de chunks para evitar errores de módulos perdidos
-  output: 'standalone'
+  experimental: {
+    // Removido optimizeCss que causaba problemas con critters
+    optimizePackageImports: ['leaflet']
+  }
 };
 
 export default nextConfig;

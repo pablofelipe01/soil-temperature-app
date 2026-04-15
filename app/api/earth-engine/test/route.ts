@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { isGEEConfigured, getGEEConfig } from '@/config/env'
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     console.log('🔍 Verificando configuración de Google Earth Engine...')
     

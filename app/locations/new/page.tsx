@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { MapPin, ArrowLeft } from 'lucide-react'
 
 interface FormData {
   name: string
@@ -155,9 +156,9 @@ export default function NewLocationPage() {
             <div className="flex items-center mb-4">
               <Link
                 href="/locations"
-                className="text-blue-600 hover:text-blue-500 flex items-center"
+                className="text-green-600 hover:text-green-500 flex items-center gap-1"
               >
-                ← Volver a ubicaciones
+                <ArrowLeft className="h-4 w-4" /> Volver a ubicaciones
               </Link>
             </div>
             <h1 className="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:text-3xl">
@@ -173,9 +174,9 @@ export default function NewLocationPage() {
             <button
               type="button"
               onClick={useBellacruzExample}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center gap-1 px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 cursor-pointer"
             >
-              📍 Usar ejemplo de Bellacruz del Llano
+              <MapPin className="h-4 w-4" /> Usar ejemplo de Bellacruz del Llano
             </button>
           </div>
 
@@ -389,7 +390,7 @@ export default function NewLocationPage() {
               <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
                 <div className="mb-4">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    🌱 Información de Biochar
+                    Información de Biochar
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Datos sobre la aplicación de biochar para análisis de impacto en temperatura

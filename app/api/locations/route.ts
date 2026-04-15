@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma/client'
+import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
 // Schema de validación para crear/actualizar ubicación
@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     
     // Parámetros de filtro opcionales
-    const isActive = searchParams.get('active') === 'true'
+    const activeParam = searchParams.get('active')
+    const isActiveFilter = activeParam === null ? undefined : activeParam === 'true'
     const clientName = searchParams.get('client')
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
@@ -54,8 +55,8 @@ export async function GET(request: NextRequest) {
       userId: userId
     }
 
-    if (typeof isActive === 'boolean') {
-      whereClause.isActive = isActive
+    if (isActiveFilter !== undefined) {
+      whereClause.isActive = isActiveFilter
     }
 
     if (clientName) {

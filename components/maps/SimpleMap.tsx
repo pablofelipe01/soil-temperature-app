@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import * as L from 'leaflet'
+import { supabase } from '@/lib/supabase/client'
 
 interface Location {
   id: string
@@ -43,38 +44,46 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
     const loadLocation = async () => {
       try {
         if (locationId) {
-          // Si se proporciona un locationId específico, consultar esa ubicación
-          console.log('🔍 Consultando ubicación específica:', locationId)
           const response = await fetch(`/api/locations/${locationId}`)
-          console.log('📡 Respuesta de API específica:', response.status)
           
           if (response.ok) {
             const result = await response.json()
-            console.log('🔍 Datos de API específica:', result)
             
             if (result && (result.id || result.data?.id)) {
               const locationData = result.data || result
-              const processedLocation = {
+              setLocation({
                 id: locationData.id,
                 name: locationData.name,
                 latitude: locationData.latitude.toString(),
                 longitude: locationData.longitude.toString()
-              }
-              setLocation(processedLocation)
-              console.log('📍 Ubicación específica cargada correctamente:', processedLocation)
+              })
               return
             }
           }
         }
         
-        // Fallback: cargar la primera ubicación disponible
-        const response = await fetch('/api/debug/locations-with-users')
-        const result = await response.json()
-        
-        if (result.success && result.locations.length > 0) {
-          const correctLocation = result.locations[0]
-          setLocation(correctLocation)
-          console.log('📍 Ubicación por defecto cargada:', correctLocation)
+        // Fallback: cargar la primera ubicación disponible (autenticado)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+
+        const fallbackResponse = await fetch('/api/locations?limit=1', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'x-user-id': session.user.id
+          }
+        })
+
+        if (fallbackResponse.ok) {
+          const fallbackResult = await fallbackResponse.json()
+          if (fallbackResult.success && fallbackResult.data?.length > 0) {
+            const loc = fallbackResult.data[0]
+            setLocation({
+              id: loc.id,
+              name: loc.name,
+              latitude: loc.latitude.toString(),
+              longitude: loc.longitude.toString()
+            })
+          }
         }
       } catch (error) {
         console.error('❌ Error cargando ubicación:', error)

@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import dynamic from 'next/dynamic'
 import '../../../styles/heatmap.css'
+import { MapPin, Mountain, Pencil, Trash2, Thermometer, Calendar, BarChart3, ArrowLeft, RefreshCw, Map, AlertTriangle, Info } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 // Importar dinámicamente el componente del mapa simple
 const SimpleMap = dynamic(() => import('@/components/maps/SimpleMap'), { 
@@ -154,11 +156,11 @@ export default function LocationDetailPage() {
         let errorMessage = result.error || 'Error al consultar datos de temperatura'
         
         if (result.suggestion) {
-          errorMessage += '\n\n💡 ' + result.suggestion
+          errorMessage += '\n\n' + result.suggestion
         }
         
         if (result.availableDataUntil) {
-          errorMessage += '\n\n📅 Datos disponibles hasta: ' + new Date(result.availableDataUntil).toLocaleDateString('es-ES')
+          errorMessage += '\nDatos disponibles hasta: ' + new Date(result.availableDataUntil).toLocaleDateString('es-ES')
         }
         
         setTemperatureError(errorMessage)
@@ -221,7 +223,7 @@ export default function LocationDetailPage() {
         <div className="py-10">
           <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
             </div>
           </div>
         </div>
@@ -240,9 +242,9 @@ export default function LocationDetailPage() {
               </h3>
               <Link
                 href="/locations"
-                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
               >
-                ← Volver a ubicaciones
+                <ArrowLeft className="h-4 w-4 mr-1" /> Volver a ubicaciones
               </Link>
             </div>
           </div>
@@ -260,24 +262,26 @@ export default function LocationDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <Link
                 href="/locations"
-                className="text-blue-600 hover:text-blue-500 flex items-center"
+                className="text-green-600 hover:text-green-500 flex items-center gap-1"
               >
-                ← Volver a ubicaciones
+                <ArrowLeft className="h-4 w-4" /> Volver a ubicaciones
               </Link>
               
               <div className="flex items-center space-x-3">
                 <Link
                   href={`/locations/${locationId}/edit`}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  className="inline-flex items-center gap-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
-                  ✏️ Editar
+                  <Pencil className="h-4 w-4" /> Editar
                 </Link>
-                <button
+                <Button
+                  variant="danger"
+                  size="sm"
                   onClick={handleDeleteLocation}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                  icon={<Trash2 className="h-4 w-4" />}
                 >
-                  🗑️ Eliminar
-                </button>
+                  Eliminar
+                </Button>
               </div>
             </div>
             
@@ -309,15 +313,15 @@ export default function LocationDetailPage() {
                   
                   <div>
                     <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Coordenadas</dt>
-                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                      📍 {parseFloat(location.latitude.toString()).toFixed(6)}, {parseFloat(location.longitude.toString()).toFixed(6)}
+                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5" /> {parseFloat(location.latitude.toString()).toFixed(6)}, {parseFloat(location.longitude.toString()).toFixed(6)}
                     </dd>
                   </div>
 
                   {location.elevation && (
                     <div>
                       <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Elevación</dt>
-                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">⛰️ {location.elevation}m</dd>
+                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100 flex items-center gap-1"><Mountain className="h-3.5 w-3.5" /> {location.elevation}m</dd>
                     </div>
                   )}
 
@@ -343,7 +347,7 @@ export default function LocationDetailPage() {
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                           : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                       }`}>
-                        {location.isActive ? '✅ Activo' : '❌ Inactivo'}
+                        {location.isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </dd>
                   </div>
@@ -384,9 +388,9 @@ export default function LocationDetailPage() {
                       const tempSection = document.querySelector('[data-temperature-section]')
                       tempSection?.scrollIntoView({ behavior: 'smooth' })
                     }}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                    className="w-full inline-flex justify-center items-center gap-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 cursor-pointer"
                   >
-                    🌡️ Ver Datos de Temperatura
+                    <Thermometer className="h-4 w-4" /> Ver Datos de Temperatura
                   </button>
                   
                   <button
@@ -398,16 +402,16 @@ export default function LocationDetailPage() {
                       setEndDate(endD)
                       fetchTemperatureData(startD, endD, false)
                     }}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                    className="w-full inline-flex justify-center items-center gap-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer"
                   >
-                    📅 Últimos 7 días
+                    <Calendar className="h-4 w-4" /> Últimos 7 días
                   </button>
                   
                   <Link
                     href={`/locations/${locationId}/reports`}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                    className="w-full inline-flex justify-center items-center gap-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                   >
-                    📊 Ver Reportes
+                    <BarChart3 className="h-4 w-4" /> Ver Reportes
                   </Link>
                 </div>
               </div>
@@ -472,9 +476,9 @@ export default function LocationDetailPage() {
                       <button
                         onClick={handleCustomQuery}
                         disabled={loadingTemperature}
-                        className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full inline-flex justify-center items-center gap-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
-                        {loadingTemperature ? '🔄' : '🌡️'} Consultar
+                        <Thermometer className="h-4 w-4" /> Consultar
                       </button>
                     </div>
                   </div>
@@ -483,7 +487,7 @@ export default function LocationDetailPage() {
                     <div className="mt-4 p-4 rounded-md bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400">
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
-                          <span className="text-yellow-400 text-lg">⚠️</span>
+                          <AlertTriangle className="h-5 w-5 text-yellow-400" />
                         </div>
                         <div className="ml-3 flex-1">
                           <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
@@ -507,23 +511,23 @@ export default function LocationDetailPage() {
                     <div className="flex rounded-md shadow-sm">
                       <button
                         onClick={() => setViewMode('charts')}
-                        className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
+                        className={`px-4 py-2 text-sm font-medium rounded-l-md border cursor-pointer ${
                           viewMode === 'charts'
-                            ? 'bg-blue-600 border-blue-600 text-white'
+                            ? 'bg-green-600 border-green-600 text-white'
                             : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
-                        📊 Gráficos
+                        <BarChart3 className="h-4 w-4 inline mr-1" /> Gráficos
                       </button>
                       <button
                         onClick={() => setViewMode('heatmap')}
-                        className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
+                        className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b cursor-pointer ${
                           viewMode === 'heatmap'
-                            ? 'bg-blue-600 border-blue-600 text-white'
+                            ? 'bg-green-600 border-green-600 text-white'
                             : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
-                        🗺️ Mapa de Calor
+                        <Map className="h-4 w-4 inline mr-1" /> Mapa de Calor
                       </button>
                     </div>
                   </div>
@@ -615,7 +619,7 @@ export default function LocationDetailPage() {
                                 
                                 <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                                   <span>{sampleData[0]?.date}</span>
-                                  <span className="text-center">📊 {sampleData.length} puntos</span>
+                                  <span className="text-center">{sampleData.length} puntos</span>
                                   <span>{sampleData[sampleData.length - 1]?.date}</span>
                                 </div>
                                 
@@ -703,7 +707,7 @@ export default function LocationDetailPage() {
                             <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
                               <div className="flex">
                                 <div className="flex-shrink-0">
-                                  <span className="text-blue-400 text-lg">ℹ️</span>
+                                  <Info className="h-5 w-5 text-blue-400" />
                                 </div>
                                 <div className="ml-3 flex-1">
                                   <h5 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
@@ -714,9 +718,9 @@ export default function LocationDetailPage() {
                                       El mapa muestra la distribución de temperaturas del suelo utilizando un gradiente de colores:
                                     </p>
                                     <ul className="list-disc list-inside space-y-1 text-xs">
-                                      <li><span className="text-blue-600">🟦 Azul:</span> Temperaturas más bajas (frías)</li>
-                                      <li><span className="text-green-600">🟢 Verde:</span> Temperaturas medias</li>
-                                      <li><span className="text-red-600">🟥 Rojo:</span> Temperaturas más altas (cálidas)</li>
+                                      <li><span className="text-blue-600">Azul:</span> Temperaturas más bajas (frías)</li>
+                                      <li><span className="text-green-600">Verde:</span> Temperaturas medias</li>
+                                      <li><span className="text-red-600">Rojo:</span> Temperaturas más altas (cálidas)</li>
                                     </ul>
                                     <p className="mt-2 text-xs">
                                       Pasa el cursor sobre los puntos para ver detalles específicos de cada ubicación.
@@ -731,7 +735,7 @@ export default function LocationDetailPage() {
                     </>
                   ) : (
                     <div className="text-center py-8">
-                      <div className="text-6xl mb-4">📊</div>
+                      <BarChart3 className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                         No hay datos para el período seleccionado
                       </h3>
@@ -749,9 +753,9 @@ export default function LocationDetailPage() {
                             fetchTemperatureData(startD, endD, true)
                           }}
                           disabled={loadingTemperature}
-                          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center gap-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
-                          � Obtener datos (90 días)
+                          <Thermometer className="h-4 w-4" /> Obtener datos (90 días)
                         </button>
                         
                         <button
@@ -760,9 +764,9 @@ export default function LocationDetailPage() {
                             fetchTemperatureData(startDate, endDate, true)
                           }}
                           disabled={loadingTemperature}
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center gap-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
-                          🔄 Actualizar desde GEE
+                          <RefreshCw className="h-4 w-4" /> Actualizar desde GEE
                         </button>
                       </div>
                     </div>

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { ArrowLeft } from 'lucide-react'
 
 interface Location {
   id: string
@@ -189,7 +190,7 @@ export default function EditLocationPage() {
         <div className="py-10">
           <div className="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
             </div>
           </div>
         </div>
@@ -208,9 +209,9 @@ export default function EditLocationPage() {
               </h3>
               <Link
                 href="/locations"
-                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                className="mt-4 inline-flex items-center gap-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
               >
-                ← Volver a ubicaciones
+                <ArrowLeft className="h-4 w-4" /> Volver a ubicaciones
               </Link>
             </div>
           </div>
@@ -228,9 +229,9 @@ export default function EditLocationPage() {
             <div className="flex items-center justify-between mb-4">
               <Link
                 href={`/locations/${locationId}`}
-                className="text-blue-600 hover:text-blue-500 flex items-center"
+                className="text-green-600 hover:text-green-500 flex items-center gap-1"
               >
-                ← Volver a detalles
+                <ArrowLeft className="h-4 w-4" /> Volver a detalles
               </Link>
             </div>
             

@@ -3,6 +3,9 @@
 import { useParams } from 'next/navigation'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 import Link from 'next/link'
+import { ArrowLeft, BarChart3, Thermometer } from 'lucide-react'
+import { Card, CardBody } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 
 export default function LocationReportsPage() {
   const params = useParams()
@@ -17,9 +20,9 @@ export default function LocationReportsPage() {
             <div className="flex items-center justify-between mb-4">
               <Link
                 href={`/locations/${locationId}`}
-                className="text-blue-600 hover:text-blue-500 flex items-center"
+                className="text-green-600 hover:text-green-500 flex items-center gap-1"
               >
-                ← Volver a detalles de ubicación
+                <ArrowLeft className="h-4 w-4" /> Volver a detalles de ubicación
               </Link>
             </div>
             
@@ -32,9 +35,9 @@ export default function LocationReportsPage() {
           </div>
 
           {/* Coming Soon */}
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-            <div className="px-6 py-12 text-center">
-              <div className="text-6xl mb-4">📊</div>
+          <Card>
+            <CardBody className="px-6 py-12 text-center">
+              <BarChart3 className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                 Reportes Próximamente
               </h3>
@@ -57,15 +60,14 @@ export default function LocationReportsPage() {
               </div>
 
               <div className="mt-8">
-                <Link
-                  href={`/locations/${locationId}`}
-                  className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  🌡️ Ver Datos de Temperatura en Mapa
+                <Link href={`/locations/${locationId}`}>
+                  <Button icon={<Thermometer className="h-4 w-4" />}>
+                    Ver Datos de Temperatura en Mapa
+                  </Button>
                 </Link>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       </div>
     </ProtectedLayout>

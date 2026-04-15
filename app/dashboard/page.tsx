@@ -1,11 +1,14 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { Map, Zap, MapPin, Thermometer, ClipboardList } from 'lucide-react'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
+import type { MapLocation } from '@/components/maps/SimpleMap'
+import { supabase } from '@/lib/supabase/client'
 
 const SimpleMap = dynamic(() => import('@/components/maps/SimpleMap'), { 
   ssr: false,
@@ -16,6 +19,53 @@ const SimpleMap = dynamic(() => import('@/components/maps/SimpleMap'), {
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const [mapLocations, setMapLocations] = useState<MapLocation[]>([])
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+
+        const res = await fetch('/api/locations?active=true&includeLatestTemp=true', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'x-user-id': session.user.id,
+          },
+        })
+
+        if (!res.ok) return
+
+        const json = await res.json()
+        if (!json.success || !json.data) return
+
+        const locations: MapLocation[] = json.data.map((loc: {
+          id: string
+          name: string
+          latitude: number
+          longitude: number
+          soilTemperatures?: { measurementDate: string; tempLevel1: number | null; dataSource: string }[]
+        }) => {
+          const latest = loc.soilTemperatures?.[0]
+          return {
+            id: loc.id,
+            name: loc.name,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            latestTemperature: latest?.tempLevel1 ?? null,
+            latestDate: latest?.measurementDate ?? null,
+            dataSource: latest?.dataSource ?? null,
+          }
+        })
+
+        setMapLocations(locations)
+      } catch (err) {
+        console.error('Error fetching locations for dashboard map:', err)
+      }
+    }
+
+    fetchLocations()
+  }, [])
 
   return (
     <ProtectedLayout>
@@ -44,7 +94,7 @@ export default function DashboardPage() {
             </span>
           </CardHeader>
           <CardBody className="p-4">
-            <SimpleMap />
+            <SimpleMap locations={mapLocations} />
           </CardBody>
         </Card>
 

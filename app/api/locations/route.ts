@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
     const activeParam = searchParams.get('active')
     const isActiveFilter = activeParam === null ? undefined : activeParam === 'true'
     const clientName = searchParams.get('client')
+    const includeLatestTemp = searchParams.get('includeLatestTemp') === 'true'
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
@@ -78,7 +79,18 @@ export async function GET(request: NextRequest) {
           select: {
             soilTemperatures: true
           }
-        }
+        },
+        ...(includeLatestTemp && {
+          soilTemperatures: {
+            orderBy: { measurementDate: 'desc' as const },
+            take: 1,
+            select: {
+              measurementDate: true,
+              tempLevel1: true,
+              dataSource: true
+            }
+          }
+        })
       }
     })
 

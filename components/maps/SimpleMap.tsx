@@ -27,11 +27,35 @@ interface BiocharInfo {
   notes?: string
 }
 
-interface SimpleMapProps {
-  locationId?: string // ID específico de ubicación para mostrar
+// Data structure for multi-location (dashboard) mode
+export interface MapLocation {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  clientName?: string
+  latestTemperature?: number | null
+  latestDate?: string | null
+  dataSource?: string | null
+  temperatureCount?: number
 }
 
-export default function SimpleMap({ locationId }: SimpleMapProps) {
+interface SimpleMapProps {
+  locationId?: string // Single-location mode (detail page)
+  locations?: MapLocation[] // Multi-location mode (dashboard)
+}
+
+// Color scale: blue (cold) → red (hot)
+function getTemperatureColor(temperature: number): string {
+  if (temperature < 10) return '#3B82F6'
+  if (temperature < 15) return '#06B6D4'
+  if (temperature < 20) return '#10B981'
+  if (temperature < 25) return '#F59E0B'
+  if (temperature < 30) return '#F97316'
+  return '#EF4444'
+}
+
+export default function SimpleMap({ locationId, locations }: SimpleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const [location, setLocation] = useState<Location | null>(null)
@@ -39,8 +63,16 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
   const [biocharInfo, setBiocharInfo] = useState<BiocharInfo | null>(null)
   const [loadingTemperature, setLoadingTemperature] = useState(false)
 
+  // Determine mode
+  const isMultiMode = !!locations
+
+  // =========================================================================
+  // SINGLE-LOCATION MODE: load location + temperature data (detail page)
+  // =========================================================================
+
   // Cargar ubicación específica o la primera disponible
   useEffect(() => {
+    if (isMultiMode) return
     const loadLocation = async () => {
       try {
         if (locationId) {
@@ -91,10 +123,11 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
     }
 
     loadLocation()
-  }, [locationId])
+  }, [locationId, isMultiMode])
 
   // Cargar datos de temperatura cuando se carga la ubicación
   useEffect(() => {
+    if (isMultiMode) return
     if (!location) return
 
     const loadTemperatureData = async () => {
@@ -149,10 +182,10 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
     }
 
     loadTemperatureData()
-  }, [location])
+  }, [location, isMultiMode])
 
-  // Función para determinar color basado en temperatura
-  const getTemperatureColor = (temperature: number, isPostBiochar?: boolean) => {
+  // Función para determinar color basado en temperatura (single-location, with biochar support)
+  const getDetailTemperatureColor = (temperature: number, isPostBiochar?: boolean) => {
     if (isPostBiochar) {
       // Colores más cálidos/naranjas para datos post-biochar
       if (temperature < 10) return '#7C3AED'  // Púrpura - muy frío post-biochar
@@ -172,7 +205,11 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
     }
   }
 
+  // =========================================================================
+  // SINGLE-LOCATION MODE: initialize map with heatmap (detail page)
+  // =========================================================================
   useEffect(() => {
+    if (isMultiMode) return
     if (!location) return // Esperar a que se cargue la ubicación
 
     const initMap = async () => {
@@ -237,7 +274,7 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
           
           // Usar la temperatura más reciente
           const latestTemp = temperatureData[temperatureData.length - 1]
-          const color = getTemperatureColor(latestTemp.temperatureCelsius, latestTemp.isPostBiochar)
+          const color = getDetailTemperatureColor(latestTemp.temperatureCelsius, latestTemp.isPostBiochar)
           
           // Crear círculo coloreado por temperatura
           L.circle([lat, lng], {
@@ -318,8 +355,173 @@ export default function SimpleMap({ locationId }: SimpleMapProps) {
         mapInstanceRef.current = null
       }
     }
-  }, [location, temperatureData, biocharInfo])
+  }, [location, temperatureData, biocharInfo, isMultiMode])
 
+  // =========================================================================
+  // MULTI-LOCATION MODE: show all locations with colored markers (dashboard)
+  // =========================================================================
+  useEffect(() => {
+    if (!isMultiMode) return
+
+    const initMultiMap = async () => {
+      try {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove()
+          mapInstanceRef.current = null
+        }
+
+        const L = await import('leaflet')
+
+        const DefaultIcon = L.icon({
+          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
+        })
+        L.Marker.prototype.options.icon = DefaultIcon
+
+        if (!mapRef.current) return
+        if (mapRef.current.innerHTML.trim() !== '') {
+          mapRef.current.innerHTML = ''
+        }
+
+        // Default center (Colombia) if no locations
+        const map = L.map(mapRef.current).setView([4.6, -74.1], 6)
+        mapInstanceRef.current = map
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map)
+
+        if (!locations || locations.length === 0) return
+
+        const bounds = L.latLngBounds([])
+
+        locations.forEach((loc) => {
+          const lat = loc.latitude
+          const lng = loc.longitude
+          const temp = loc.latestTemperature != null ? Number(loc.latestTemperature) : null
+          const color = temp != null
+            ? getTemperatureColor(temp)
+            : '#9CA3AF' // gray when no data
+
+          // Colored circle marker
+          L.circleMarker([lat, lng], {
+            radius: 10,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.7,
+            weight: 2,
+          })
+            .addTo(map)
+            .bindPopup(`
+              <div style="font-family: system-ui; padding: 8px; min-width: 180px;">
+                <strong style="color: #374151; font-size: 14px;">${loc.name}</strong><br/>
+                ${temp != null
+                  ? `<span style="color: ${color}; font-weight: bold; font-size: 15px;">🌡️ ${temp.toFixed(1)}°C</span><br/>`
+                  : '<span style="color: #9CA3AF;">Sin datos de temperatura</span><br/>'
+                }
+                ${loc.latestDate
+                  ? `<small style="color: #6b7280;">📅 ${new Date(loc.latestDate).toLocaleDateString('es-CO')}</small><br/>`
+                  : ''
+                }
+                <small style="color: #6b7280;">📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}</small>
+              </div>
+            `)
+
+          bounds.extend([lat, lng])
+        })
+
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
+        }
+      } catch (error) {
+        console.error('Error inicializando mapa multi-ubicación:', error)
+      }
+    }
+
+    const timer = setTimeout(initMultiMap, 100)
+    return () => {
+      clearTimeout(timer)
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove()
+        mapInstanceRef.current = null
+      }
+    }
+  }, [isMultiMode, locations])
+
+  // =========================================================================
+  // RENDER
+  // =========================================================================
+
+  // Multi-location mode: no locations loaded yet → spinner; empty array → empty state
+  if (isMultiMode) {
+    if (!locations) {
+      return (
+        <div className="w-full h-96 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Cargando ubicaciones...</p>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="w-full h-96">
+        <div className="relative w-full h-full" style={{ position: 'relative' }}>
+          <div
+            ref={mapRef}
+            className="w-full h-full rounded-lg border border-gray-300 dark:border-gray-700"
+            style={{ minHeight: '400px', position: 'relative', zIndex: 1 }}
+          />
+          {/* Simple legend for multi mode */}
+          <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 backdrop-blur-sm bg-opacity-95" style={{ zIndex: 1000 }}>
+            <h4 className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              🌡️ Temperatura del Suelo
+            </h4>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-1 text-xs">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-gray-600 dark:text-gray-400">&lt;10°C Muy frío</span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+                <span className="text-gray-600 dark:text-gray-400">10-15°C Frío</span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-gray-600 dark:text-gray-400">15-20°C Templado</span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <span className="text-gray-600 dark:text-gray-400">20-25°C Cálido</span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                <span className="text-gray-600 dark:text-gray-400">25-30°C Caliente</span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <span className="text-gray-600 dark:text-gray-400">&gt;30°C Muy caliente</span>
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                <span className="text-gray-600 dark:text-gray-400">Sin datos</span>
+              </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400">
+              📍 {locations.length} ubicación{locations.length !== 1 ? 'es' : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Single-location mode: loading state
   if (!location) {
     return (
       <div className="w-full h-96 flex items-center justify-center bg-gray-100 rounded-lg">

@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic'
 import '../../../styles/heatmap.css'
 import { MapPin, Mountain, Pencil, Trash2, Thermometer, Calendar, BarChart3, ArrowLeft, RefreshCw, Map, AlertTriangle, Info } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import TemperatureChart from '@/components/charts/TemperatureChart'
 
 // Importar dinámicamente el componente del mapa simple
 const SimpleMap = dynamic(() => import('@/components/maps/SimpleMap'), { 
@@ -49,6 +50,10 @@ interface TemperatureData {
   id: string
   date: string
   temperatureCelsius: number
+  tempLevel1?: number | null
+  tempLevel2?: number | null
+  tempLevel3?: number | null
+  tempLevel4?: number | null
   dataSource: string
 }
 
@@ -78,6 +83,7 @@ export default function LocationDetailPage() {
     return new Date().toISOString().split('T')[0]
   })
   const [forceRefresh, setForceRefresh] = useState(false)
+  const [timeRange, setTimeRange] = useState<'1w' | '1m' | '3m' | 'custom'>('1m')
   const [temperatureError, setTemperatureError] = useState('')
 
   // Cargar datos de la ubicación
@@ -185,6 +191,18 @@ export default function LocationDetailPage() {
   // Manejar consulta personalizada
   const handleCustomQuery = async () => {
     await fetchTemperatureData(startDate, endDate, forceRefresh)
+  }
+
+  // Manejar selector de rango rápido
+  const handleTimeRange = (range: '1w' | '1m' | '3m' | 'custom') => {
+    setTimeRange(range)
+    if (range === 'custom') return
+    const end = new Date().toISOString().split('T')[0]
+    const days = range === '1w' ? 7 : range === '1m' ? 30 : 90
+    const start = new Date(Date.now() - days * 86400000).toISOString().split('T')[0]
+    setStartDate(start)
+    setEndDate(end)
+    fetchTemperatureData(start, end, false)
   }
 
   const handleDeleteLocation = async () => {
@@ -573,74 +591,40 @@ export default function LocationDetailPage() {
                   {temperatureData.length > 0 ? (
                     <>
                       {viewMode === 'charts' ? (
-                        // Visualización con gráficos
+                        // Visualización con gráficos Recharts
                         <>
-                      {/* Gráfico visual de temperatura */}
+                      {/* Selector de rango temporal */}
+                      <div className="mb-4 flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Rango:</span>
+                        {([
+                          ['1w', 'Última semana'],
+                          ['1m', 'Último mes'],
+                          ['3m', 'Últimos 3 meses'],
+                          ['custom', 'Personalizado'],
+                        ] as const).map(([key, label]) => (
+                          <button
+                            key={key}
+                            onClick={() => handleTimeRange(key)}
+                            className={`px-3 py-1 text-xs rounded-full border cursor-pointer transition-colors ${
+                              timeRange === key
+                                ? 'bg-green-600 border-green-600 text-white'
+                                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Gráfico de línea Recharts */}
                       <div className="mb-6">
                         <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
                           Tendencia de Temperatura
                         </h4>
-                        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
-                          {(() => {
-                            if (!temperatureStats || temperatureData.length === 0) return null
-                            
-                            const maxTemp = temperatureStats.max
-                            const minTemp = temperatureStats.min
-                            const range = maxTemp - minTemp
-                            
-                            // Tomar una muestra de datos para el gráfico
-                            const sampleData = temperatureData.slice(-20) // Últimos 20 puntos
-                            
-                            return (
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                  <span>Máx: {maxTemp.toFixed(1)}°C</span>
-                                  <span>Promedio: {temperatureStats.average.toFixed(1)}°C</span>
-                                  <span>Mín: {minTemp.toFixed(1)}°C</span>
-                                </div>
-                                
-                                <div className="relative h-24 bg-white dark:bg-gray-800 rounded border">
-                                  <div className="absolute inset-0 flex items-end justify-between px-1">
-                                    {sampleData.map((point) => {
-                                      const height = range > 0 ? ((parseFloat(point.temperatureCelsius.toString()) - minTemp) / range) * 100 : 50
-                                      const color = height > 70 ? 'bg-red-500' : height > 30 ? 'bg-yellow-500' : 'bg-blue-500'
-                                      
-                                      return (
-                                        <div
-                                          key={point.id}
-                                          className={`w-1 ${color} rounded-t transition-all duration-300 hover:opacity-75`}
-                                          style={{ height: `${Math.max(height, 5)}%` }}
-                                          title={`${point.date}: ${parseFloat(point.temperatureCelsius.toString()).toFixed(1)}°C`}
-                                        />
-                                      )
-                                    })}
-                                  </div>
-                                </div>
-                                
-                                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                  <span>{sampleData[0]?.date}</span>
-                                  <span className="text-center">{sampleData.length} puntos</span>
-                                  <span>{sampleData[sampleData.length - 1]?.date}</span>
-                                </div>
-                                
-                                <div className="flex justify-center items-center space-x-4 text-xs">
-                                  <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-red-500 rounded mr-1"></div>
-                                    <span className="text-gray-600 dark:text-gray-300">Alta</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-yellow-500 rounded mr-1"></div>
-                                    <span className="text-gray-600 dark:text-gray-300">Media</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-3 h-3 bg-blue-500 rounded mr-1"></div>
-                                    <span className="text-gray-600 dark:text-gray-300">Baja</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })()}
-                        </div>
+                        <TemperatureChart
+                          data={temperatureData}
+                          loading={loadingTemperature}
+                        />
                       </div>
 
                       {/* Tabla de datos recientes */}

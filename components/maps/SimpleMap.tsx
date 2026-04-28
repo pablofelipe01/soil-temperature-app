@@ -400,8 +400,8 @@ export default function SimpleMap({ locationId, locations }: SimpleMapProps) {
         const bounds = L.latLngBounds([])
 
         locations.forEach((loc) => {
-          const lat = loc.latitude
-          const lng = loc.longitude
+          const lat = Number(loc.latitude)
+          const lng = Number(loc.longitude)
           const temp = loc.latestTemperature != null ? Number(loc.latestTemperature) : null
           const color = temp != null
             ? getTemperatureColor(temp)

@@ -93,6 +93,10 @@ export async function GET(request: NextRequest) {
               id: record.id,
               date: recordDate,
               temperatureCelsius: parseFloat((record.tempLevel1 || 0).toString()), // Usar el primer nivel como default
+              tempLevel1: record.tempLevel1 != null ? parseFloat(record.tempLevel1.toString()) : null,
+              tempLevel2: record.tempLevel2 != null ? parseFloat(record.tempLevel2.toString()) : null,
+              tempLevel3: record.tempLevel3 != null ? parseFloat(record.tempLevel3.toString()) : null,
+              tempLevel4: record.tempLevel4 != null ? parseFloat(record.tempLevel4.toString()) : null,
               dataSource: record.dataSource || 'ERA5-Land',
               isPostBiochar: biocharStartDate ? new Date(recordDate) >= biocharStartDate : false
             }
@@ -196,6 +200,10 @@ export async function GET(request: NextRequest) {
         id: record.id,
         date: recordDate,
         temperatureCelsius: parseFloat((record.tempLevel1 || 0).toString()),
+        tempLevel1: record.tempLevel1 != null ? parseFloat(record.tempLevel1.toString()) : null,
+        tempLevel2: record.tempLevel2 != null ? parseFloat(record.tempLevel2.toString()) : null,
+        tempLevel3: record.tempLevel3 != null ? parseFloat(record.tempLevel3.toString()) : null,
+        tempLevel4: record.tempLevel4 != null ? parseFloat(record.tempLevel4.toString()) : null,
         dataSource: record.dataSource || 'ERA5-Land',
         isPostBiochar: biocharStartDate ? new Date(recordDate) >= biocharStartDate : false
       }

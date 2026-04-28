@@ -5,7 +5,7 @@ import ProtectedLayout from '@/components/layout/ProtectedLayout'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { Map, Zap, MapPin, Thermometer, ClipboardList } from 'lucide-react'
+import { Map, Zap, MapPin, Thermometer, ClipboardList, FileText } from 'lucide-react'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
 import type { MapLocation } from '@/components/maps/SimpleMap'
 import { supabase } from '@/lib/supabase/client'
@@ -129,7 +129,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <CardBody className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Link 
                 href="/locations/new"
                 className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-6 border border-blue-200 dark:border-blue-800 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-950/60 dark:hover:to-indigo-950/60 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 hover:shadow-md"
@@ -177,6 +177,23 @@ export default function DashboardPage() {
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Ver y editar todas las ubicaciones
+                  </p>
+                </div>
+              </Link>
+
+              <Link 
+                href="/reports"
+                className="group relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 border border-amber-200 dark:border-amber-800 rounded-xl hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-950/60 dark:hover:to-orange-950/60 hover:border-amber-300 dark:hover:border-amber-700 transition-all duration-200 hover:shadow-md"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 bg-amber-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                  <h4 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    Generar Reportes
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    PDF y Excel para certificación Puro.earth
                   </p>
                 </div>
               </Link>

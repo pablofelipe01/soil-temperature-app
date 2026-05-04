@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts'
 
@@ -34,6 +35,8 @@ export interface TemperatureReading {
 export interface TemperatureChartProps {
   /** Temperature readings array */
   data: TemperatureReading[]
+  /** Biochar application date (YYYY-MM-DD) for vertical annotation */
+  biocharDate?: string | null
   /** True while data is being fetched */
   loading?: boolean
   /** Error message to display */
@@ -43,8 +46,8 @@ export interface TemperatureChartProps {
 }
 
 /** Format ISO date string to short locale label */
-function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr)
+function formatDateLabel(dateValue: number): string {
+  const d = new Date(dateValue)
   return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
 }
 
@@ -59,12 +62,12 @@ interface TooltipPayloadEntry {
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadEntry[]; label?: string }) {
   if (!active || !payload?.length) return null
 
-  const dateLabel = typeof label === 'string' ? label : ''
+  const dateLabel = typeof label === 'number' ? label : Number.NaN
 
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 shadow-lg text-sm">
       <p className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-        {dateLabel
+        {Number.isFinite(dateLabel)
           ? new Date(dateLabel).toLocaleDateString('es-CO', {
               day: 'numeric',
               month: 'long',
@@ -88,6 +91,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 export default function TemperatureChart({
   data,
+  biocharDate,
   loading = false,
   error,
   height = 320,
@@ -131,9 +135,23 @@ export default function TemperatureChart({
 
   // Sort data by date for proper line rendering
   const sortedData = useMemo(
-    () => [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    () => [...data]
+      .map((row) => ({ ...row, ts: new Date(row.date).getTime() }))
+      .filter((row) => Number.isFinite(row.ts))
+      .sort((a, b) => a.ts - b.ts),
     [data],
   )
+
+  const biocharTimestamp = useMemo(() => {
+    if (!biocharDate) return null
+    const ts = new Date(biocharDate).getTime()
+    return Number.isFinite(ts) ? ts : null
+  }, [biocharDate])
+
+  const hasBiocharInRange = useMemo(() => {
+    if (!biocharTimestamp || sortedData.length === 0) return false
+    return biocharTimestamp >= sortedData[0].ts && biocharTimestamp <= sortedData[sortedData.length - 1].ts
+  }, [biocharTimestamp, sortedData])
 
   // --- States: loading, error, empty ---
   if (loading) {
@@ -171,7 +189,9 @@ export default function TemperatureChart({
         <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-600" />
 
         <XAxis
-          dataKey="date"
+          dataKey="ts"
+          type="number"
+          domain={['dataMin', 'dataMax']}
           tickFormatter={formatDateLabel}
           tick={{ fontSize: 12 }}
           className="text-gray-500 dark:text-gray-400"
@@ -191,6 +211,21 @@ export default function TemperatureChart({
         <Legend
           wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
         />
+
+        {hasBiocharInRange && biocharTimestamp != null && (
+          <ReferenceLine
+            x={biocharTimestamp}
+            stroke="#16a34a"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            label={{
+              value: 'Aplicacion biochar',
+              position: 'insideTopRight',
+              fill: '#166534',
+              fontSize: 12,
+            }}
+          />
+        )}
 
         {hasDepthData
           ? activeDepths.map((depth) => (

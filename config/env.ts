@@ -22,6 +22,13 @@ const envSchema = z.object({
   GEE_SERVICE_ACCOUNT_EMAIL: z.string().email().optional(),
   GEE_PRIVATE_KEY: z.string().min(1).optional(),
   GEE_PROJECT_ID: z.string().min(1).optional(),
+
+  // Alertas por correo (opcional)
+  ALERT_EMAIL_PROVIDER: z.enum(['resend', 'sendgrid']).optional(),
+  ALERT_FROM_EMAIL: z.string().email().optional(),
+  ALERT_DEFAULT_TO_EMAIL: z.string().email().optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  SENDGRID_API_KEY: z.string().min(1).optional(),
 })
 
 // Tipo TypeScript para las variables validadas

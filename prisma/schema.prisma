@@ -74,6 +74,16 @@ model Location {
     biocharFrequency String?   @map("biochar_frequency") @db.VarChar(50) // "única vez", "mensual", "trimestral"
     biocharNotes     String?   @map("biochar_notes") @db.Text
 
+    // Umbrales de alerta por ubicación
+    alertsEnabled        Boolean   @default(false) @map("alerts_enabled")
+    minTempThreshold     Decimal?  @map("min_temp_threshold") @db.Decimal(5, 2)
+    maxTempThreshold     Decimal?  @map("max_temp_threshold") @db.Decimal(5, 2)
+    minMoistureThreshold Decimal?  @map("min_moisture_threshold") @db.Decimal(5, 3)
+    maxMoistureThreshold Decimal?  @map("max_moisture_threshold") @db.Decimal(5, 3)
+    alertEmails          String?   @map("alert_emails") @db.Text
+    lastAlertSentAt      DateTime? @map("last_alert_sent_at") @db.Timestamptz(6)
+    lastAlertHash        String?   @map("last_alert_hash") @db.VarChar(255)
+
     isActive  Boolean  @default(true) @map("is_active")
     createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
     updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

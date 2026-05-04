@@ -20,6 +20,14 @@ export interface GEESoilTemperatureData {
   temperature_level_4?: number // 100-289 cm depth (Celsius)
 }
 
+export interface GEESoilMoistureData {
+  date: string // Format: 'YYYY-MM-DD'
+  moisture_level_1?: number // 0-7 cm depth (m3/m3)
+  moisture_level_2?: number // 7-28 cm depth (m3/m3)
+  moisture_level_3?: number // 28-100 cm depth (m3/m3)
+  moisture_level_4?: number // 100-289 cm depth (m3/m3)
+}
+
 export interface GEETemperatureResponse {
   success: boolean
   data?: GEESoilTemperatureData[]
@@ -38,14 +46,38 @@ export interface GEETemperatureResponse {
   }
 }
 
+export interface GEEMoistureResponse {
+  success: boolean
+  data?: GEESoilMoistureData[]
+  error?: string
+  metadata?: {
+    location: {
+      latitude: number
+      longitude: number
+    }
+    dateRange: {
+      start: string
+      end: string
+    }
+    recordCount: number
+    dataset: string
+  }
+}
+
 // Configuración del dataset ERA5-Land
 export const ERA5_LAND_CONFIG = {
   dataset: 'ECMWF/ERA5_LAND/MONTHLY_AGGR',
-  bands: [
+  temperatureBands: [
     'soil_temperature_level_1', // 0-7 cm
     'soil_temperature_level_2', // 7-28 cm
     'soil_temperature_level_3', // 28-100 cm
     'soil_temperature_level_4'  // 100-289 cm
+  ],
+  moistureBands: [
+    'volumetric_soil_water_layer_1', // 0-7 cm
+    'volumetric_soil_water_layer_2', // 7-28 cm
+    'volumetric_soil_water_layer_3', // 28-100 cm
+    'volumetric_soil_water_layer_4'  // 100-289 cm
   ],
   scale: 11132, // Resolución aproximada en metros (~11km)
   maxPixels: 1e9,
@@ -67,5 +99,6 @@ export interface GEEValidationResult {
 }
 
 // Helper types
-export type GEEBand = typeof ERA5_LAND_CONFIG.bands[number]
+export type GEETemperatureBand = typeof ERA5_LAND_CONFIG.temperatureBands[number]
+export type GEEMoistureBand = typeof ERA5_LAND_CONFIG.moistureBands[number]
 export type GEETemperatureLevel = 1 | 2 | 3 | 4

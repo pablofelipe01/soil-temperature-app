@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { evaluateThresholdBreaches, buildAlertHash } from '@/lib/alerts/thresholds'
+import { sendThresholdAlertEmail } from '@/lib/alerts/notifications'
 
 // Schema de validación para la consulta de datos
 const temperatureQuerySchema = z.object({
@@ -152,6 +154,12 @@ export async function GET(request: NextRequest) {
     }
 
     const temperatureRecords = geeResult.data
+    const moistureResult = await fetchMoistureFromGEE(
+      parseFloat(location.latitude.toString()),
+      parseFloat(location.longitude.toString()),
+      startDate,
+      endDate,
+    )
 
     // Guardar datos en la base de datos usando la estructura correcta
     const savedRecords = []
@@ -209,6 +217,90 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    const alertSummary: {
+      checked: boolean
+      triggered: boolean
+      breachCount: number
+      sent: boolean
+      reason?: string
+    } = {
+      checked: false,
+      triggered: false,
+      breachCount: 0,
+      sent: false,
+    }
+
+    const locationAlert = location as unknown as {
+      alertsEnabled?: boolean
+      minTempThreshold?: number | null
+      maxTempThreshold?: number | null
+      minMoistureThreshold?: number | null
+      maxMoistureThreshold?: number | null
+      alertEmails?: string | null
+      clientEmail?: string | null
+      lastAlertSentAt?: Date | null
+      lastAlertHash?: string | null
+    }
+
+    if (locationAlert.alertsEnabled && temperatureRecords?.length && moistureResult.success && moistureResult.data?.length) {
+      alertSummary.checked = true
+
+      const breaches = evaluateThresholdBreaches(
+        {
+          minTempThreshold: locationAlert.minTempThreshold ?? null,
+          maxTempThreshold: locationAlert.maxTempThreshold ?? null,
+          minMoistureThreshold: locationAlert.minMoistureThreshold ?? null,
+          maxMoistureThreshold: locationAlert.maxMoistureThreshold ?? null,
+        },
+        temperatureRecords,
+        moistureResult.data,
+      )
+
+      alertSummary.breachCount = breaches.length
+      alertSummary.triggered = breaches.length > 0
+
+      if (breaches.length > 0) {
+        const alertHash = buildAlertHash(locationId, breaches)
+        const cooldownMs = 6 * 60 * 60 * 1000
+        const now = Date.now()
+        const lastSentAt = locationAlert.lastAlertSentAt ? new Date(locationAlert.lastAlertSentAt).getTime() : 0
+        const inCooldown = now - lastSentAt < cooldownMs
+
+        if (inCooldown && locationAlert.lastAlertHash === alertHash) {
+          alertSummary.reason = 'Alerta duplicada dentro de ventana de enfriamiento'
+        } else {
+          const recipients = [
+            ...(locationAlert.alertEmails || '').split(',').map((email) => email.trim()).filter(Boolean),
+            ...(locationAlert.clientEmail ? [locationAlert.clientEmail] : []),
+          ]
+
+          const uniqueRecipients = Array.from(new Set(recipients))
+          const emailResult = await sendThresholdAlertEmail({
+            locationName: location.name,
+            recipients: uniqueRecipients,
+            breaches,
+            startDate,
+            endDate,
+          })
+
+          alertSummary.sent = emailResult.sent
+          if (!emailResult.sent) {
+            alertSummary.reason = emailResult.reason
+          }
+
+          if (emailResult.sent) {
+            await prisma.location.update({
+              where: { id: locationId },
+              data: {
+                lastAlertSentAt: new Date(),
+                lastAlertHash: alertHash,
+              },
+            })
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: transformedData,
@@ -228,6 +320,7 @@ export async function GET(request: NextRequest) {
       },
       dateRange: { startDate, endDate },
       stats: calculateStats(transformedData),
+      alerts: alertSummary,
       message: 'Datos obtenidos desde Google Earth Engine'
     })
 
@@ -273,58 +366,6 @@ async function fetchTemperatureFromGEE(
   }
 }
 
-// Tipos para los datos de temperatura
-interface TemperatureRecord {
-  date: string
-  temperature: number
-  metadata?: Record<string, unknown>
-}
-
-// Función para guardar datos de temperatura en la base de datos
-interface GEETemperatureRecord {
-  date: string
-  temperature_level_1?: number
-  temperature_level_2?: number  
-  temperature_level_3?: number
-  temperature_level_4?: number
-}
-
-async function saveTemperatureData(locationId: string, temperatureData: GEETemperatureRecord[]) {
-  const dataToSave = temperatureData.map(item => ({
-    locationId: locationId,
-    measurementDate: new Date(item.date),
-    tempLevel1: item.temperature_level_1 || null,
-    tempLevel2: item.temperature_level_2 || null,
-    tempLevel3: item.temperature_level_3 || null,
-    tempLevel4: item.temperature_level_4 || null,
-    dataSource: 'ERA5-Land'
-  }))
-
-  // Usar upsert para evitar duplicados
-  const savedRecords = []
-  for (const data of dataToSave) {
-    const saved = await prisma.soilTemperature.upsert({
-      where: {
-        locationId_measurementDate_dataSource: {
-          locationId: data.locationId,
-          measurementDate: data.measurementDate,
-          dataSource: data.dataSource
-        }
-      },
-      update: {
-        tempLevel1: data.tempLevel1,
-        tempLevel2: data.tempLevel2,
-        tempLevel3: data.tempLevel3,
-        tempLevel4: data.tempLevel4
-      },
-      create: data
-    })
-    savedRecords.push(saved)
-  }
-
-  return savedRecords
-}
-
 // Función auxiliar para generar rango de fechas
 function getDaysInRange(startDate: string, endDate: string): string[] {
   const start = new Date(startDate)
@@ -360,5 +401,27 @@ function calculateStats(data: { temperatureCelsius: number | string }[]) {
     max: Math.max(...temperatures),
     average: temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length,
     range: Math.max(...temperatures) - Math.min(...temperatures)
+  }
+}
+
+async function fetchMoistureFromGEE(
+  latitude: number,
+  longitude: number,
+  startDate: string,
+  endDate: string,
+) {
+  try {
+    const { soilTemperatureService } = await import('@/lib/earth-engine/services')
+    return await soilTemperatureService.getSoilMoistureData({
+      latitude,
+      longitude,
+      startDate,
+      endDate,
+    })
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error desconocido',
+    }
   }
 }

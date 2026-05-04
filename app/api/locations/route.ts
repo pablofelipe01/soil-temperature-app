@@ -23,7 +23,14 @@ const locationSchema = z.object({
   biocharQuantity: z.number().positive('La cantidad debe ser positiva').optional(),
   biocharUnit: z.enum(['kg/m²', 'ton/ha', 'kg/ha', 'g/m²']).optional(),
   biocharFrequency: z.enum(['única vez', 'mensual', 'bimestral', 'trimestral', 'semestral', 'anual']).optional(),
-  biocharNotes: z.string().max(1000, 'Las notas son muy largas').optional()
+  biocharNotes: z.string().max(1000, 'Las notas son muy largas').optional(),
+  // Campos de alertas
+  alertsEnabled: z.boolean().optional(),
+  minTempThreshold: z.number().optional(),
+  maxTempThreshold: z.number().optional(),
+  minMoistureThreshold: z.number().optional(),
+  maxMoistureThreshold: z.number().optional(),
+  alertEmails: z.string().max(1000, 'Lista de correos muy larga').optional(),
 })
 
 // GET /api/locations - Obtener todas las ubicaciones del usuario

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import ProtectedLayout from '@/components/layout/ProtectedLayout'
 import Link from 'next/link'
@@ -33,6 +33,18 @@ interface Location {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  biocharStartDate?: string | null
+  biocharQuantity?: number | null
+  biocharUnit?: string | null
+  biocharFrequency?: string | null
+  biocharNotes?: string | null
+  alertsEnabled?: boolean
+  minTempThreshold?: number | null
+  maxTempThreshold?: number | null
+  minMoistureThreshold?: number | null
+  maxMoistureThreshold?: number | null
+  alertEmails?: string | null
+  lastAlertSentAt?: string | null
   _count?: {
     soilTemperatures: number
   }
@@ -55,6 +67,122 @@ interface TemperatureData {
   tempLevel3?: number | null
   tempLevel4?: number | null
   dataSource: string
+  isPostBiochar?: boolean
+}
+
+interface SoilHealthData {
+  location: {
+    id: string
+    name: string
+  }
+  period: {
+    startDate: string
+    endDate: string
+  }
+  compositeIndex: number
+  status: 'optimo' | 'alerta' | 'critico'
+  scores: {
+    temperature: number
+    moisture: number
+    biochar: number
+  }
+  metrics: {
+    averageTemperature: number | null
+    averageMoisture: number | null
+    biocharDeltaAverage: number | null
+    preBiocharSamples: number
+    postBiocharSamples: number
+    temperatureRecords: number
+    moistureRecords: number
+  }
+}
+
+interface BiocharDepthImpact {
+  key: 'tempLevel1' | 'tempLevel2' | 'tempLevel3' | 'tempLevel4'
+  depth: string
+  preAvg: number | null
+  postAvg: number | null
+  delta: number | null
+  available: boolean
+}
+
+const DEPTH_CONFIG = [
+  { key: 'tempLevel1' as const, depth: '0-7 cm', colorClass: 'border-red-500 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300' },
+  { key: 'tempLevel2' as const, depth: '7-28 cm', colorClass: 'border-orange-500 bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300' },
+  { key: 'tempLevel3' as const, depth: '28-100 cm', colorClass: 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300' },
+  { key: 'tempLevel4' as const, depth: '100-289 cm', colorClass: 'border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300' },
+]
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function computeBiocharImpactByDepth(
+  readings: TemperatureData[],
+  biocharDate: string | null | undefined,
+): { depthImpacts: BiocharDepthImpact[]; preCount: number; postCount: number } {
+  if (!biocharDate) {
+    return {
+      depthImpacts: DEPTH_CONFIG.map((depth) => ({
+        key: depth.key,
+        depth: depth.depth,
+        preAvg: null,
+        postAvg: null,
+        delta: null,
+        available: false,
+      })),
+      preCount: 0,
+      postCount: 0,
+    }
+  }
+
+  const biocharTs = new Date(biocharDate).getTime()
+  if (!Number.isFinite(biocharTs)) {
+    return {
+      depthImpacts: DEPTH_CONFIG.map((depth) => ({
+        key: depth.key,
+        depth: depth.depth,
+        preAvg: null,
+        postAvg: null,
+        delta: null,
+        available: false,
+      })),
+      preCount: 0,
+      postCount: 0,
+    }
+  }
+
+  const pre = readings.filter((r) => new Date(r.date).getTime() < biocharTs)
+  const post = readings.filter((r) => new Date(r.date).getTime() >= biocharTs)
+
+  const depthImpacts: BiocharDepthImpact[] = DEPTH_CONFIG.map((depth) => {
+    const preVals = pre
+      .map((r) => r[depth.key])
+      .filter((v): v is number => v != null)
+    const postVals = post
+      .map((r) => r[depth.key])
+      .filter((v): v is number => v != null)
+
+    const preAvg = average(preVals)
+    const postAvg = average(postVals)
+    const delta = preAvg != null && postAvg != null ? postAvg - preAvg : null
+
+    return {
+      key: depth.key,
+      depth: depth.depth,
+      preAvg,
+      postAvg,
+      delta,
+      available: preVals.length > 0 && postVals.length > 0,
+    }
+  })
+
+  return {
+    depthImpacts,
+    preCount: pre.length,
+    postCount: post.length,
+  }
 }
 
 
@@ -85,6 +213,64 @@ export default function LocationDetailPage() {
   const [forceRefresh, setForceRefresh] = useState(false)
   const [timeRange, setTimeRange] = useState<'1w' | '1m' | '3m' | 'custom'>('1m')
   const [temperatureError, setTemperatureError] = useState('')
+  const [soilHealth, setSoilHealth] = useState<SoilHealthData | null>(null)
+  const [soilHealthLoading, setSoilHealthLoading] = useState(false)
+  const [soilHealthError, setSoilHealthError] = useState('')
+  const [alertsEnabled, setAlertsEnabled] = useState(false)
+  const [minTempThreshold, setMinTempThreshold] = useState('')
+  const [maxTempThreshold, setMaxTempThreshold] = useState('')
+  const [minMoistureThreshold, setMinMoistureThreshold] = useState('')
+  const [maxMoistureThreshold, setMaxMoistureThreshold] = useState('')
+  const [alertEmails, setAlertEmails] = useState('')
+  const [savingAlerts, setSavingAlerts] = useState(false)
+  const [alertsConfigMsg, setAlertsConfigMsg] = useState('')
+  const [alertsConfigError, setAlertsConfigError] = useState('')
+
+  const biocharComparison = useMemo(
+    () => computeBiocharImpactByDepth(temperatureData, location?.biocharStartDate),
+    [temperatureData, location?.biocharStartDate],
+  )
+
+  const fetchSoilHealth = useCallback(async (queryStartDate: string, queryEndDate: string) => {
+    if (!locationId || !location) return
+
+    setSoilHealthLoading(true)
+    setSoilHealthError('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const params = new URLSearchParams({
+        locationId,
+        startDate: queryStartDate,
+        endDate: queryEndDate,
+      })
+
+      const response = await fetch(`/api/soil-health?${params}`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'x-user-id': session.user.id,
+        },
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setSoilHealth(result.data)
+        setSoilHealthError('')
+      } else {
+        setSoilHealth(null)
+        setSoilHealthError(result.error || 'No se pudo calcular el índice de salud del suelo')
+      }
+    } catch (err) {
+      console.error('Error fetching soil health:', err)
+      setSoilHealth(null)
+      setSoilHealthError('Error de conexión al calcular salud del suelo')
+    } finally {
+      setSoilHealthLoading(false)
+    }
+  }, [locationId, location])
 
   // Cargar datos de la ubicación
   useEffect(() => {
@@ -181,6 +367,65 @@ export default function LocationDetailPage() {
     }
   }, [locationId, startDate, endDate, location])
 
+  const saveAlertSettings = useCallback(async () => {
+    if (!location) return
+
+    setSavingAlerts(true)
+    setAlertsConfigError('')
+    setAlertsConfigMsg('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setAlertsConfigError('No autenticado')
+        return
+      }
+
+      const payload = {
+        alertsEnabled,
+        minTempThreshold: minTempThreshold ? parseFloat(minTempThreshold) : undefined,
+        maxTempThreshold: maxTempThreshold ? parseFloat(maxTempThreshold) : undefined,
+        minMoistureThreshold: minMoistureThreshold ? parseFloat(minMoistureThreshold) : undefined,
+        maxMoistureThreshold: maxMoistureThreshold ? parseFloat(maxMoistureThreshold) : undefined,
+        alertEmails: alertEmails.trim() || undefined,
+      }
+
+      const response = await fetch(`/api/locations/${locationId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          'x-user-id': session.user.id,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        setAlertsConfigError(result.error || 'No se pudo guardar la configuración de alertas')
+        return
+      }
+
+      const updated = result.data as Location
+      setLocation(updated)
+      setAlertsConfigMsg('Configuración de alertas guardada')
+    } catch (err) {
+      console.error('Error saving alert settings:', err)
+      setAlertsConfigError('Error de conexión al guardar alertas')
+    } finally {
+      setSavingAlerts(false)
+    }
+  }, [
+    alertEmails,
+    alertsEnabled,
+    location,
+    locationId,
+    maxMoistureThreshold,
+    maxTempThreshold,
+    minMoistureThreshold,
+    minTempThreshold,
+  ])
+
   // Cargar datos de temperatura iniciales
   useEffect(() => {
     if (location) {
@@ -188,9 +433,22 @@ export default function LocationDetailPage() {
     }
   }, [location, fetchTemperatureData])
 
+  useEffect(() => {
+    if (location) {
+      fetchSoilHealth(startDate, endDate)
+      setAlertsEnabled(!!location.alertsEnabled)
+      setMinTempThreshold(location.minTempThreshold != null ? String(location.minTempThreshold) : '')
+      setMaxTempThreshold(location.maxTempThreshold != null ? String(location.maxTempThreshold) : '')
+      setMinMoistureThreshold(location.minMoistureThreshold != null ? String(location.minMoistureThreshold) : '')
+      setMaxMoistureThreshold(location.maxMoistureThreshold != null ? String(location.maxMoistureThreshold) : '')
+      setAlertEmails(location.alertEmails || location.clientEmail || '')
+    }
+  }, [location, startDate, endDate, fetchSoilHealth])
+
   // Manejar consulta personalizada
   const handleCustomQuery = async () => {
     await fetchTemperatureData(startDate, endDate, forceRefresh)
+    await fetchSoilHealth(startDate, endDate)
   }
 
   // Manejar selector de rango rápido
@@ -203,6 +461,7 @@ export default function LocationDetailPage() {
     setStartDate(start)
     setEndDate(end)
     fetchTemperatureData(start, end, false)
+    fetchSoilHealth(start, end)
   }
 
   const handleDeleteLocation = async () => {
@@ -433,6 +692,107 @@ export default function LocationDetailPage() {
                   </Link>
                 </div>
               </div>
+
+              <div className="mt-6 bg-white dark:bg-gray-800 shadow rounded-lg">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    Alertas por Umbral
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Se evalúan cuando se consultan datos nuevos desde GEE
+                  </p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={alertsEnabled}
+                      onChange={(e) => setAlertsEnabled(e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-600 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Activar alertas para esta ubicación</span>
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Temperatura mínima (°C)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={minTempThreshold}
+                        onChange={(e) => setMinTempThreshold(e.target.value)}
+                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                        placeholder="5"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Temperatura máxima (°C)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={maxTempThreshold}
+                        onChange={(e) => setMaxTempThreshold(e.target.value)}
+                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                        placeholder="35"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Humedad mínima (m³/m³)</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={minMoistureThreshold}
+                        onChange={(e) => setMinMoistureThreshold(e.target.value)}
+                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                        placeholder="0.10"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Humedad máxima (m³/m³)</label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={maxMoistureThreshold}
+                        onChange={(e) => setMaxMoistureThreshold(e.target.value)}
+                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                        placeholder="0.45"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correos destino (separados por coma)</label>
+                    <input
+                      type="text"
+                      value={alertEmails}
+                      onChange={(e) => setAlertEmails(e.target.value)}
+                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                      placeholder="agronomo@empresa.com, alertas@empresa.com"
+                    />
+                  </div>
+
+                  {location.lastAlertSentAt && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Última alerta enviada: {new Date(location.lastAlertSentAt).toLocaleString('es-ES')}
+                    </p>
+                  )}
+
+                  {alertsConfigError && (
+                    <p className="text-xs text-red-600 dark:text-red-400">{alertsConfigError}</p>
+                  )}
+                  {alertsConfigMsg && (
+                    <p className="text-xs text-green-600 dark:text-green-400">{alertsConfigMsg}</p>
+                  )}
+
+                  <button
+                    onClick={saveAlertSettings}
+                    disabled={savingAlerts}
+                    className="w-full inline-flex justify-center items-center gap-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {savingAlerts ? 'Guardando...' : 'Guardar alertas'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Datos de temperatura */}
@@ -552,6 +912,90 @@ export default function LocationDetailPage() {
                 </div>
                 
                 <div className="p-6">
+                  <div className="mb-6 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-white via-emerald-50 to-lime-50 dark:from-gray-800 dark:via-emerald-950/20 dark:to-lime-950/20 p-4 sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Salud del Suelo (compuesto)</h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Índice combinado de temperatura, humedad y biochar</p>
+                      </div>
+                      {soilHealthLoading && (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600" />
+                      )}
+                    </div>
+
+                    {soilHealthError ? (
+                      <div className="rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-3 text-sm text-amber-800 dark:text-amber-200">
+                        {soilHealthError}
+                      </div>
+                    ) : soilHealth ? (
+                      <>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center mb-4">
+                          <div className="lg:col-span-1 flex flex-col items-center justify-center">
+                            <div
+                              className="relative h-32 w-32 rounded-full"
+                              style={{
+                                background: `conic-gradient(#16a34a 0 ${(soilHealth.compositeIndex / 100) * 360}deg, #e5e7eb ${(soilHealth.compositeIndex / 100) * 360}deg 360deg)`,
+                              }}
+                            >
+                              <div className="absolute inset-3 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center">
+                                <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{soilHealth.compositeIndex}</span>
+                              </div>
+                            </div>
+                            <span className="mt-2 text-xs text-gray-600 dark:text-gray-400">Índice 0-100</span>
+                          </div>
+
+                          <div className="lg:col-span-2">
+                            <div className="mb-3 flex items-center gap-2">
+                              <span className={`h-3 w-3 rounded-full ${soilHealth.status === 'optimo' ? 'bg-green-500' : soilHealth.status === 'alerta' ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                Estado: {soilHealth.status === 'optimo' ? 'Óptimo' : soilHealth.status === 'alerta' ? 'Alerta' : 'Crítico'}
+                              </span>
+                            </div>
+
+                            <div className="space-y-2">
+                              {[
+                                { label: 'Temperatura', value: soilHealth.scores.temperature, color: 'bg-red-500' },
+                                { label: 'Humedad', value: soilHealth.scores.moisture, color: 'bg-blue-500' },
+                                { label: 'Biochar', value: soilHealth.scores.biochar, color: 'bg-emerald-500' },
+                              ].map((item) => (
+                                <div key={item.label}>
+                                  <div className="flex items-center justify-between text-xs text-gray-700 dark:text-gray-300 mb-1">
+                                    <span>{item.label}</span>
+                                    <span className="font-semibold">{item.value}/100</span>
+                                  </div>
+                                  <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                    <div className={`h-full ${item.color}`} style={{ width: `${item.value}%` }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Temp. media</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{soilHealth.metrics.averageTemperature != null ? `${soilHealth.metrics.averageTemperature.toFixed(2)}°C` : 'N/D'}</p>
+                          </div>
+                          <div className="rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Humedad media</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{soilHealth.metrics.averageMoisture != null ? `${soilHealth.metrics.averageMoisture.toFixed(3)} m³/m³` : 'N/D'}</p>
+                          </div>
+                          <div className="rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Delta biochar</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{soilHealth.metrics.biocharDeltaAverage != null ? `${soilHealth.metrics.biocharDeltaAverage > 0 ? '+' : ''}${soilHealth.metrics.biocharDeltaAverage.toFixed(2)}°C` : 'N/D'}</p>
+                          </div>
+                          <div className="rounded-md bg-white/70 dark:bg-gray-900/40 p-3">
+                            <p className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Muestras</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">T:{soilHealth.metrics.temperatureRecords} | H:{soilHealth.metrics.moistureRecords}</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Calculando índice de salud del suelo...</div>
+                    )}
+                  </div>
+
                   {temperatureStats && (
                     <div className="mb-6">
                       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-4">
@@ -623,8 +1067,70 @@ export default function LocationDetailPage() {
                         </h4>
                         <TemperatureChart
                           data={temperatureData}
+                          biocharDate={location.biocharStartDate}
                           loading={loadingTemperature}
                         />
+                      </div>
+
+                      <div className="mb-6 rounded-lg border border-green-200 dark:border-green-900 bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-green-950/20 p-4 sm:p-5">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              Comparativo pre/post-biochar
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              Delta = promedio posterior - promedio anterior por profundidad
+                            </p>
+                          </div>
+                          {location.biocharStartDate && (
+                            <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/50 px-3 py-1 text-xs font-medium text-green-800 dark:text-green-300">
+                              Aplicacion: {new Date(location.biocharStartDate).toLocaleDateString('es-ES')}
+                            </span>
+                          )}
+                        </div>
+
+                        {!location.biocharStartDate ? (
+                          <div className="rounded-md border border-dashed border-gray-300 dark:border-gray-600 p-3 text-sm text-gray-600 dark:text-gray-400">
+                            Esta ubicacion no tiene fecha de aplicacion de biochar configurada.
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mb-4 text-xs text-gray-600 dark:text-gray-400">
+                              Muestras pre: <span className="font-semibold text-gray-900 dark:text-gray-100">{biocharComparison.preCount}</span> | Muestras post: <span className="font-semibold text-gray-900 dark:text-gray-100">{biocharComparison.postCount}</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {biocharComparison.depthImpacts.map((impact) => {
+                                const depthUi = DEPTH_CONFIG.find((depth) => depth.key === impact.key)
+                                const delta = impact.delta
+                                const trend = delta == null ? 'Sin datos' : Math.abs(delta) < 0.05 ? 'Sin cambio' : delta > 0 ? 'Aumento' : 'Disminucion'
+                                const deltaClass = delta == null
+                                  ? 'text-gray-500 dark:text-gray-400'
+                                  : delta > 0
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-green-700 dark:text-green-400'
+
+                                return (
+                                  <div
+                                    key={impact.key}
+                                    className={`rounded-lg border-l-4 p-3 ${depthUi?.colorClass ?? 'border-gray-300 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-xs font-semibold uppercase tracking-wide">{impact.depth}</span>
+                                      <span className={`text-xs font-semibold ${deltaClass}`}>{trend}</span>
+                                    </div>
+                                    <div className="text-xs opacity-90">
+                                      Pre: {impact.preAvg != null ? `${impact.preAvg.toFixed(2)}°C` : 'N/D'} | Post: {impact.postAvg != null ? `${impact.postAvg.toFixed(2)}°C` : 'N/D'}
+                                    </div>
+                                    <div className={`mt-1 text-sm font-bold ${deltaClass}`}>
+                                      Delta: {delta != null ? `${delta > 0 ? '+' : ''}${delta.toFixed(2)}°C` : 'N/D'}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       {/* Tabla de datos recientes */}

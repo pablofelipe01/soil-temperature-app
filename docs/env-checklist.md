@@ -16,6 +16,13 @@
 - [ ] `GEE_SERVICE_ACCOUNT_EMAIL` - Email del service account
 - [ ] `GEE_PRIVATE_KEY` - Clave privada del service account
 
+### 🟡 Opcionales para alertas por correo:
+- [ ] `ALERT_EMAIL_PROVIDER` - Proveedor (`resend` o `sendgrid`)
+- [ ] `ALERT_FROM_EMAIL` - Remitente verificado para alertas
+- [ ] `RESEND_API_KEY` - API key de Resend (si usas Resend)
+- [ ] `SENDGRID_API_KEY` - API key de SendGrid (si usas SendGrid)
+- [ ] `ALERT_DEFAULT_TO_EMAIL` - Correo fallback opcional
+
 ## 📝 Próximos pasos
 
 1. **Crear proyecto de Google Cloud** (si no tienes)

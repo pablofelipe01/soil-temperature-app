@@ -7,8 +7,49 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { Map, Zap, MapPin, Thermometer, ClipboardList, FileText } from 'lucide-react'
 import { Card, CardHeader, CardBody } from '@/components/ui/Card'
+import { TiltCard } from '@/components/ui/TiltCard'
+import HeroBackground from '@/components/layout/HeroBackground'
 import type { MapLocation } from '@/components/maps/SimpleMap'
 import { supabase } from '@/lib/supabase/client'
+
+const QUICK_ACTIONS = [
+  {
+    href: '/locations/new',
+    icon: MapPin,
+    title: 'Nueva Ubicación',
+    description: 'Registra un nuevo punto de monitoreo',
+    surface:
+      'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800',
+    iconBg: 'bg-blue-500',
+  },
+  {
+    href: '/locations',
+    icon: Thermometer,
+    title: 'Ver Temperaturas',
+    description: 'Explora datos de temperatura por ubicación',
+    surface:
+      'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 dark:from-green-950/40 dark:to-emerald-950/40 dark:border-green-800',
+    iconBg: 'bg-green-500',
+  },
+  {
+    href: '/locations',
+    icon: ClipboardList,
+    title: 'Gestionar Ubicaciones',
+    description: 'Ver y editar todas las ubicaciones',
+    surface:
+      'bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 dark:from-purple-950/40 dark:to-violet-950/40 dark:border-purple-800',
+    iconBg: 'bg-purple-500',
+  },
+  {
+    href: '/reports',
+    icon: FileText,
+    title: 'Generar Reportes',
+    description: 'PDF y Excel para certificación Puro.earth',
+    surface:
+      'bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 dark:from-amber-950/40 dark:to-orange-950/40 dark:border-amber-800',
+    iconBg: 'bg-amber-500',
+  },
+] as const
 
 const SimpleMap = dynamic(() => import('@/components/maps/SimpleMap'), { 
   ssr: false,
@@ -70,14 +111,22 @@ export default function DashboardPage() {
   return (
     <ProtectedLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Dashboard
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Bienvenido, {user?.user_metadata?.full_name || user?.email}
-          </p>
-        </div>
+        {/* Banda de encabezado con fotografía de marca */}
+        <section className="relative mb-8 overflow-hidden rounded-2xl border border-slate-800/60 shadow-lg shadow-slate-900/10">
+          <HeroBackground overlay="strong" priority />
+          <div className="relative px-6 py-10 sm:px-8 sm:py-12">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">
+              <Thermometer className="h-3.5 w-3.5" />
+              Monitoreo activo
+            </span>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Panel de control
+            </h1>
+            <p className="mt-2 text-sm text-white/70 sm:text-base">
+              Bienvenido, {user?.user_metadata?.full_name || user?.email}
+            </p>
+          </div>
+        </section>
 
         {/* Sección del Mapa */}
         <Card className="mb-8">
@@ -130,73 +179,28 @@ export default function DashboardPage() {
           </div>
           <CardBody className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Link 
-                href="/locations/new"
-                className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-6 border border-blue-200 dark:border-blue-800 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-950/60 dark:hover:to-indigo-950/60 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 hover:shadow-md"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                    <MapPin className="h-6 w-6 text-white" />
-                  </div>
-                  <h4 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Nueva Ubicación
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Registra un nuevo punto de monitoreo
-                  </p>
-                </div>
-              </Link>
-
-              <Link 
-                href="/locations"
-                className="group relative bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40 p-6 border border-green-200 dark:border-green-800 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-950/60 dark:hover:to-emerald-950/60 hover:border-green-300 dark:hover:border-green-700 transition-all duration-200 hover:shadow-md"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                    <Thermometer className="h-6 w-6 text-white" />
-                  </div>
-                  <h4 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Ver Temperaturas
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Explora datos de temperatura por ubicación
-                  </p>
-                </div>
-              </Link>
-
-              <Link 
-                href="/locations"
-                className="group relative bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/40 dark:to-violet-950/40 p-6 border border-purple-200 dark:border-purple-800 rounded-xl hover:from-purple-100 hover:to-violet-100 dark:hover:from-purple-950/60 dark:hover:to-violet-950/60 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-200 hover:shadow-md"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                    <ClipboardList className="h-6 w-6 text-white" />
-                  </div>
-                  <h4 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Gestionar Ubicaciones
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Ver y editar todas las ubicaciones
-                  </p>
-                </div>
-              </Link>
-
-              <Link 
-                href="/reports"
-                className="group relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 p-6 border border-amber-200 dark:border-amber-800 rounded-xl hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-950/60 dark:hover:to-orange-950/60 hover:border-amber-300 dark:hover:border-amber-700 transition-all duration-200 hover:shadow-md"
-              >
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-amber-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                    <FileText className="h-6 w-6 text-white" />
-                  </div>
-                  <h4 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Generar Reportes
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    PDF y Excel para certificación Puro.earth
-                  </p>
-                </div>
-              </Link>
+              {QUICK_ACTIONS.map(({ href, icon: Icon, title, description, surface, iconBg }) => (
+                <TiltCard
+                  key={title}
+                  maxTilt={8}
+                  depth={16}
+                  className={`${surface} shadow-sm transition-shadow duration-200 hover:shadow-lg`}
+                >
+                  <Link href={href} className="group flex h-full flex-col items-center p-6 text-center">
+                    <div
+                      className={`w-12 h-12 ${iconBg} rounded-lg flex items-center justify-center mb-3 transition-transform duration-200 group-hover:scale-110`}
+                    >
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
+                    <h4 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      {title}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {description}
+                    </p>
+                  </Link>
+                </TiltCard>
+              ))}
             </div>
           </CardBody>
         </Card>

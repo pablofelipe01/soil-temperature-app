@@ -155,6 +155,45 @@ body {
   font-family: var(--font-sans);
 }
 
+/* ============================================================================
+   PRESENTACIÓN (landing / auth) — superficies de vidrio y entradas animadas
+   ============================================================================ */
+
+/* Panel translúcido sobre fotografía oscura */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+
+.glass-panel-strong {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+/* Línea divisoria luminosa (borde superior de secciones oscuras) */
+.hairline-top {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* --- Focus ring utility --- */
 *:focus-visible {
   outline: 2px solid var(--ring);
